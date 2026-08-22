@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:unit": "vitest",
+    "lint": "eslint . --fix",
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
@@ -16,8 +17,13 @@
     "vue-router": "^5.2.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/test-utils": "^2.4.11",
+    "eslint": "^10.9.0",
+    "eslint-plugin-vue": "^10.10.0",
+    "globals": "^17.11.0",
     "jsdom": "^29.1.1",
     "prettier": "3.9.5",
     "vite": "^8.1.5",
