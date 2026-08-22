@@ -1,2 +1,16 @@
-# hospital-security
-The goal of this project is to implement a secure client/server system handling medical records
+# Hospital Security — Groupe 31
+
+## Membres
+- Nom Prénom (matricule)
+
+## Prérequis
+- Docker Desktop
+
+## Installation
+./install.sh
+
+## Utilisation
+(à compléter)
+
+## Architecture
+Vue.js (frontend) / Django (backend) / Keycloak (auth) / PostgreSQL, orchestrés via Docker Compose.

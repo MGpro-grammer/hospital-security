@@ -1,0 +1,24 @@
+# Secrets — ne jamais committer
+.env
+
+# Environnements
+backend/.venv/
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+backend/db.sqlite3
+
+# IDE
+.idea/
+.vscode/
+
+# Vagrant (Phase 10bis)
+.vagrant/
+*.box
+
+# Certificats locaux (Phase 1)
+certs/
+*.pem
+*.key
