@@ -1,7 +1,8 @@
 # Hospital Security — Groupe 31
 
 ## Membres
-- Nom Prénom (matricule)
+- Mouratidis Georges (62218)
+- Grande Ian (62265)
 
 ## Prérequis
 - Docker Desktop

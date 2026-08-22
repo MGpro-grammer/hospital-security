@@ -14,4 +14,4 @@ RUN useradd --create-home appuser && chown -R appuser /app
 USER appuser
 
 EXPOSE 8000
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python", "manage.py", "runserver_plus", "0.0.0.0:8000", "--cert-file", "/certs/server.crt", "--key-file", "/certs/server.key"]

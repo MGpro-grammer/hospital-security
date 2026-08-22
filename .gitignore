@@ -18,7 +18,12 @@ backend/db.sqlite3
 .vagrant/
 *.box
 
-# Certificats locaux (Phase 1)
-certs/
+# Certificats locaux (Phase 1) : on ignore les cles et certificats generes,
+# mais on versionne le script et la configuration qui les produisent.
+certs/*
+!certs/generate-certs.sh
+!certs/server.ext
 *.pem
 *.key
+*.crt
+*.srl

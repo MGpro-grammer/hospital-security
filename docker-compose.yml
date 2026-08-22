@@ -10,18 +10,27 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.7.2
-    command: start-dev
+    command:
+      - start-dev
+      - --https-certificate-file=/opt/keycloak/conf/server.crt
+      - --https-certificate-key-file=/opt/keycloak/conf/server.key
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME: localhost
+      KC_HTTPS_PORT: 8443
+    volumes:
+      - ./certs:/opt/keycloak/conf:ro
     ports:
-      - "8080:8080"
+      - "8443:8443"
 
   django:
     build: ./backend
     environment:
       SECRET_KEY: ${SECRET_KEY}
       DEBUG: ${DEBUG}
+    volumes:
+      - ./certs:/certs:ro
     depends_on:
       - db
     ports:
@@ -29,8 +38,11 @@ services:
 
   frontend:
     build: ./frontend
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
     ports:
       - "80:80"
+      - "443:443"
     depends_on:
       - django
 
