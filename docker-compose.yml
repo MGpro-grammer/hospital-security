@@ -12,15 +12,15 @@ services:
     image: quay.io/keycloak/keycloak:26.7.2
     command:
       - start-dev
-      - --https-certificate-file=/opt/keycloak/conf/server.crt
-      - --https-certificate-key-file=/opt/keycloak/conf/server.key
+      - --https-certificate-file=/opt/keycloak/certs/server.crt
+      - --https-certificate-key-file=/opt/keycloak/certs/server.key
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HOSTNAME: localhost
       KC_HTTPS_PORT: 8443
     volumes:
-      - ./certs:/opt/keycloak/conf:ro
+      - ./certs:/opt/keycloak/certs:ro
     ports:
       - "8443:8443"
 
