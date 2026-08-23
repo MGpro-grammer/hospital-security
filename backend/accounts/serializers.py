@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import UserKeys
+from .models import Doctor, Patient, UserKeys
 
 
 class UserKeysSerializer(serializers.ModelSerializer):
@@ -15,3 +15,16 @@ class UserKeysSerializer(serializers.ModelSerializer):
         model = UserKeys
         fields = ["public_key", "encrypted_private_key", "private_key_iv", "created_at"]
         read_only_fields = ["created_at"]
+
+class PatientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Patient
+        fields = ["keycloak_sub", "first_name", "last_name", "date_of_birth"]
+        read_only_fields = ["keycloak_sub"]
+
+
+class DoctorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Doctor
+        fields = ["keycloak_sub", "first_name", "last_name", "organisation"]
+        read_only_fields = ["keycloak_sub"]

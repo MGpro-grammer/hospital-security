@@ -5,8 +5,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import UserKeys
-from .serializers import UserKeysSerializer
+from .models import Doctor, Patient, UserKeys
+from .permissions import IsDoctor, IsPatient
+from .serializers import DoctorSerializer, PatientSerializer, UserKeysSerializer
 
 
 @api_view(["GET"])
@@ -61,3 +62,46 @@ def my_keys(request):
             {"detail": "Aucune cle enregistree."}, status=status.HTTP_404_NOT_FOUND
         )
     return Response(UserKeysSerializer(keys).data)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_profile(request):
+    """
+    Cree le profil de l'utilisateur courant.
+
+    Le TYPE (patient ou medecin) est deduit du groupe Keycloak porte par le
+    jeton, jamais choisi par le client. Un utilisateur ne peut donc pas se
+    declarer medecin.
+    """
+    if request.user.is_patient:
+        if Patient.objects.filter(keycloak_sub=request.user.sub).exists():
+            return Response({"detail": "Profil deja cree."}, status=status.HTTP_409_CONFLICT)
+        serializer = PatientSerializer(data=request.data)
+    elif request.user.is_doctor:
+        if Doctor.objects.filter(keycloak_sub=request.user.sub).exists():
+            return Response({"detail": "Profil deja cree."}, status=status.HTTP_409_CONFLICT)
+        serializer = DoctorSerializer(data=request.data)
+    else:
+        return Response(
+            {"detail": "Aucun role attribue a cet utilisateur."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    serializer.is_valid(raise_exception=True)
+    serializer.save(keycloak_sub=request.user.sub)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def my_profile(request):
+    """Renvoie le profil de l'utilisateur courant, avec son role."""
+    if request.user.is_patient:
+        obj = Patient.objects.filter(keycloak_sub=request.user.sub).first()
+        if obj:
+            return Response({"role": "patient", **PatientSerializer(obj).data})
+    elif request.user.is_doctor:
+        obj = Doctor.objects.filter(keycloak_sub=request.user.sub).first()
+        if obj:
+            return Response({"role": "doctor", **DoctorSerializer(obj).data})
+    return Response({"detail": "Aucun profil."}, status=status.HTTP_404_NOT_FOUND)

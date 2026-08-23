@@ -1,6 +1,10 @@
 from django.contrib import admin
 
-from .models import UserKeys
+from .models import Doctor, DoctorPatientLink, Patient, UserKeys
+
+admin.site.register(Patient)
+admin.site.register(Doctor)
+admin.site.register(DoctorPatientLink)
 
 
 @admin.register(UserKeys)
