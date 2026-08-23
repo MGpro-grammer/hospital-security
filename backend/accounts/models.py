@@ -1,5 +1,19 @@
 from django.db import models
 
+"""
+Cles cryptographiques d'un utilisateur.
+
+DEUX paires distinctes :
+  - RSA-OAEP : chiffre et dechiffre les cles de fichier (DEK)
+  - RSA-PSS  : signe et verifie le manifeste du dossier
+
+Web Crypto fixe l'algorithme d'une paire a sa creation : une paire
+RSA-OAEP ne peut pas signer. Separer la cle qui chiffre de celle qui
+signe est par ailleurs une bonne pratique : une cle, un usage.
+
+Le serveur stocke les deux cles publiques en clair et les deux cles
+privees CHIFFREES, qu'il est incapable de dechiffrer.
+"""
 
 class UserKeys(models.Model):
     """
@@ -23,7 +37,25 @@ class UserKeys(models.Model):
     private_key_iv = models.CharField(
         max_length=32, help_text="Vecteur d'initialisation AES-GCM, base64."
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+    signing_public_key = models.TextField(
+        blank=True,
+        default="",
+        help_text="Cle publique RSA-PSS de signature, format SPKI base64.",
+    )
+    encrypted_signing_private_key = models.TextField(
+        blank=True,
+        default="",
+        help_text="Cle privee de signature PKCS8 chiffree en AES-256-GCM, base64.",
+    )
+    signing_private_key_iv = models.CharField(
+        max_length=32,
+        blank=True,
+        default="",
+        help_text="Vecteur d'initialisation AES-GCM de la cle de signature, base64.",
+    )
 
     class Meta:
         verbose_name = "Cles utilisateur"

@@ -119,22 +119,27 @@ export async function wrapPrivateKey(privateKey, kek) {
 }
 
 /**
- * Dechiffre la cle privee recuperee du serveur.
+ * Dechiffre une cle privee recuperee du serveur.
  * AES-GCM verifie l'integrite : toute alteration fait echouer l'operation.
  *
  * @param {{iv: string, ciphertext: string}} wrapped
  * @param {CryptoKey} kek
+ * @param {object} [algorithm] Algorithme de la cle a reconstruire.
+ * @param {string[]} [usages] Usages autorises.
  * @returns {Promise<CryptoKey>} Cle privee NON extractible.
  */
-export async function unwrapPrivateKey(wrapped, kek) {
+export async function unwrapPrivateKey(
+    wrapped,
+    kek,
+    algorithm = { name: 'RSA-OAEP', hash: 'SHA-256' },
+    usages = ['decrypt'],
+) {
     const pkcs8 = await crypto.subtle.decrypt(
         { name: 'AES-GCM', iv: b64ToBuf(wrapped.iv) },
         kek,
         b64ToBuf(wrapped.ciphertext),
     )
-    return crypto.subtle.importKey('pkcs8', pkcs8, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, [
-        'decrypt',
-    ])
+    return crypto.subtle.importKey('pkcs8', pkcs8, algorithm, false, usages)
 }
 
 /**
@@ -147,12 +152,77 @@ export async function exportPublicKey(publicKey) {
 }
 
 /**
- * Importe une cle publique SPKI base64 (la sienne, ou celle d'un medecin).
+ * Importe une cle publique SPKI base64.
  * @param {string} b64
+ * @param {object} [algorithm]
+ * @param {string[]} [usages]
  * @returns {Promise<CryptoKey>}
  */
-export async function importPublicKey(b64) {
-    return crypto.subtle.importKey('spki', b64ToBuf(b64), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, [
-        'encrypt',
-    ])
+export async function importPublicKey(
+    b64,
+    algorithm = { name: 'RSA-OAEP', hash: 'SHA-256' },
+    usages = ['encrypt'],
+) {
+    return crypto.subtle.importKey('spki', b64ToBuf(b64), algorithm, false, usages)
+}
+
+// --- Signature du manifeste ------------------------------------------
+
+/** Algorithme de la paire de signature. Distinct de la paire de chiffrement. */
+export const SIGN_ALG = { name: 'RSA-PSS', hash: 'SHA-256' }
+
+/** Longueur du sel PSS, alignee sur la taille d'une empreinte SHA-256. */
+const PSS_SALT_LENGTH = 32
+
+/**
+ * Genere la paire de SIGNATURE de l'utilisateur.
+ *
+ * Une paire distincte de la paire de chiffrement : Web Crypto fixe
+ * l'algorithme a la creation, et RSA-OAEP ne sait pas signer. Separer la
+ * cle qui chiffre de celle qui signe est par ailleurs une bonne pratique.
+ *
+ * @returns {Promise<CryptoKeyPair>}
+ */
+export async function generateSigningKeyPair() {
+    return crypto.subtle.generateKey(
+        {
+            name: 'RSA-PSS',
+            modulusLength: 2048,
+            publicExponent: new Uint8Array([1, 0, 1]),
+            hash: 'SHA-256',
+        },
+        true,
+        ['sign', 'verify'],
+    )
+}
+
+/**
+ * Signe des octets avec la cle privee de signature.
+ * @param {Uint8Array} data
+ * @param {CryptoKey} privateKey
+ * @returns {Promise<string>} Signature base64.
+ */
+export async function signBytes(data, privateKey) {
+    const sig = await crypto.subtle.sign(
+        { name: 'RSA-PSS', saltLength: PSS_SALT_LENGTH },
+        privateKey,
+        data,
+    )
+    return bufToB64(sig)
+}
+
+/**
+ * Verifie une signature.
+ * @param {Uint8Array} data
+ * @param {string} signatureB64
+ * @param {CryptoKey} publicKey
+ * @returns {Promise<boolean>} false si la signature ne correspond pas.
+ */
+export async function verifyBytes(data, signatureB64, publicKey) {
+    return crypto.subtle.verify(
+        { name: 'RSA-PSS', saltLength: PSS_SALT_LENGTH },
+        publicKey,
+        b64ToBuf(signatureB64),
+        data,
+    )
 }

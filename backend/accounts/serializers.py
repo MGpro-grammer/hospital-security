@@ -13,7 +13,15 @@ class UserKeysSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserKeys
-        fields = ["public_key", "encrypted_private_key", "private_key_iv", "created_at"]
+        fields = [
+            "public_key",
+            "encrypted_private_key",
+            "private_key_iv",
+            "signing_public_key",
+            "encrypted_signing_private_key",
+            "signing_private_key_iv",
+            "created_at",
+        ]
         read_only_fields = ["created_at"]
 
 class PatientSerializer(serializers.ModelSerializer):

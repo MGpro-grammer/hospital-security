@@ -1,6 +1,6 @@
 <script>
 import { login, handleRedirect } from '@/services/auth.js'
-import { enroll, restorePrivateKey } from '@/services/enrollment.js'
+import { enroll, restoreKeys } from '@/services/enrollment.js'
 
 export default {
   name: 'App',
@@ -51,11 +51,13 @@ export default {
 
     async restaurerCle() {
       try {
-        this.log('Recuperation et dechiffrement de la cle privee...')
-        const privateKey = await restorePrivateKey()
-        this.log(`Cle privee restauree : ${privateKey.algorithm.name}, ` +
+        this.log('Recuperation et dechiffrement des cles privees...')
+        const { privateKey, signingKey } = await restoreKeys()
+        this.log(`Cle de chiffrement : ${privateKey.algorithm.name}, ` +
             `${privateKey.algorithm.modulusLength} bits`)
-        this.log(`Extractible : ${privateKey.extractable} (false = ne peut pas etre lue)`)
+        this.log(`Cle de signature   : ${signingKey.algorithm.name}, ` +
+            `${signingKey.algorithm.modulusLength} bits`)
+        this.log(`Extractibles : ${privateKey.extractable} / ${signingKey.extractable}`)
         this.log('')
       } catch (e) {
         this.log(`ERREUR : ${e.message}`)

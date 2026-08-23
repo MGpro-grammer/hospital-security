@@ -6,49 +6,75 @@ import {
     evaluatePrf,
     deriveKek,
     generateKeyPair,
+    generateSigningKeyPair,
     wrapPrivateKey,
     unwrapPrivateKey,
     exportPublicKey,
+    SIGN_ALG,
 } from '@/crypto/keys.js'
 import { apiGet, apiPost } from './api.js'
 
 /**
- * Genere la paire de cles de l'utilisateur et la transmet au serveur.
+ * Genere les DEUX paires de cles de l'utilisateur et les transmet au serveur.
  *
- * La cle privee est chiffree AVANT tout appel reseau : elle ne quitte
- * jamais le navigateur en clair.
+ * Les cles privees sont chiffrees AVANT tout appel reseau : elles ne
+ * quittent jamais le navigateur en clair.
  *
- * @returns {Promise<{publicKey: string}>}
+ * @returns {Promise<{publicKey: string, signingPublicKey: string}>}
  */
 export async function enroll() {
     const prf = await evaluatePrf()
     const kek = await deriveKek(prf)
-    const pair = await generateKeyPair()
-    const wrapped = await wrapPrivateKey(pair.privateKey, kek)
-    const publicKey = await exportPublicKey(pair.publicKey)
+
+    const chiffrement = await generateKeyPair()
+    const signature = await generateSigningKeyPair()
+
+    const wrappedChiffrement = await wrapPrivateKey(chiffrement.privateKey, kek)
+    const wrappedSignature = await wrapPrivateKey(signature.privateKey, kek)
+
+    const publicKey = await exportPublicKey(chiffrement.publicKey)
+    const signingPublicKey = await exportPublicKey(signature.publicKey)
 
     await apiPost('/users/keys', {
         public_key: publicKey,
-        encrypted_private_key: wrapped.ciphertext,
-        private_key_iv: wrapped.iv,
+        encrypted_private_key: wrappedChiffrement.ciphertext,
+        private_key_iv: wrappedChiffrement.iv,
+        signing_public_key: signingPublicKey,
+        encrypted_signing_private_key: wrappedSignature.ciphertext,
+        signing_private_key_iv: wrappedSignature.iv,
     })
 
-    return { publicKey }
+    return { publicKey, signingPublicKey }
 }
 
 /**
- * Recupere la cle privee chiffree depuis le serveur et la dechiffre
- * localement en rederivant la KEK depuis l'authentificateur.
+ * Recupere les cles privees chiffrees et les dechiffre localement en
+ * rederivant la KEK depuis l'authentificateur.
  *
- * @returns {Promise<CryptoKey>} Cle privee utilisable, non extractible.
+ * UNE SEULE ceremonie WebAuthn pour les deux cles : la meme KEK protege
+ * les deux.
+ *
+ * @returns {Promise<{privateKey: CryptoKey, signingKey: CryptoKey}>}
  */
-export async function restorePrivateKey() {
+export async function restoreKeys() {
     const stored = await apiGet('/users/keys/me')
     const prf = await evaluatePrf()
     const kek = await deriveKek(prf)
 
-    return unwrapPrivateKey(
+    const privateKey = await unwrapPrivateKey(
         { iv: stored.private_key_iv, ciphertext: stored.encrypted_private_key },
         kek,
     )
+
+    const signingKey = await unwrapPrivateKey(
+        {
+            iv: stored.signing_private_key_iv,
+            ciphertext: stored.encrypted_signing_private_key,
+        },
+        kek,
+        SIGN_ALG,
+        ['sign'],
+    )
+
+    return { privateKey, signingKey }
 }
