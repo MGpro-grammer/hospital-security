@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Spike WebAuthn PRF</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1rem; }
+        button { padding: .6rem 1rem; margin: .3rem .3rem .3rem 0; font-size: 1rem; cursor: pointer; }
+        pre { background: #f4f4f4; padding: 1rem; white-space: pre-wrap; word-break: break-all; }
+    </style>
+</head>
+<body>
+<h1>Spike WebAuthn PRF</h1>
+<p>Contexte securise : <strong id="ctx"></strong> &nbsp;|&nbsp; RP ID : <strong id="rp"></strong></p>
+
+<button id="btn-create">1. Creer un identifiant</button>
+<button id="btn-a">2. Evaluer PRF (sel A)</button>
+<button id="btn-b">3. Evaluer PRF (sel B)</button>
+<button id="btn-clear">Effacer</button>
+
+<pre id="log"></pre>
+
+<script>
+    const RP_ID  = location.hostname;
+    const SALT_A = new TextEncoder().encode("hospital-security/kek/v1");
+    const SALT_B = new TextEncoder().encode("hospital-security/autre/v1");
+
+    const logEl = document.getElementById("log");
+    const log = m => logEl.textContent += m + "\n";
+    const toHex = b => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,"0")).join("");
+
+    document.getElementById("ctx").textContent = window.isSecureContext;
+    document.getElementById("rp").textContent  = RP_ID;
+
+    document.getElementById("btn-create").onclick = async () => {
+        try {
+            const cred = await navigator.credentials.create({
+                publicKey: {
+                    challenge: crypto.getRandomValues(new Uint8Array(32)),
+                    rp:   { id: RP_ID, name: "Hospital Security Spike" },
+                    user: { id: crypto.getRandomValues(new Uint8Array(16)),
+                        name: "spike@test", displayName: "Spike Test" },
+                    pubKeyCredParams: [ { type:"public-key", alg:-7 }, { type:"public-key", alg:-257 } ],
+                    authenticatorSelection: { residentKey: "required", userVerification: "required" },
+                    attestation: "none",
+                    extensions: { prf: {} }
+                }
+            });
+            const ext = cred.getClientExtensionResults();
+            log("=== ENREGISTREMENT ===");
+            log("credential ID : " + cred.id);
+            log("prf.enabled   : " + (ext.prf ? ext.prf.enabled : "extension prf ABSENTE de la reponse"));
+            log(ext.prf && ext.prf.enabled === true
+                ? ">>> L'authentificateur ANNONCE supporter PRF"
+                : ">>> PRF non annonce ici. Passez quand meme a l'etape 2 : certains");
+            if (!(ext.prf && ext.prf.enabled === true))
+                log("    authentificateurs ne repondent qu'a l'authentification.");
+            log("");
+        } catch (e) { log("ERREUR create() : " + e.name + " - " + e.message + "\n"); }
+    };
+
+    async function evaluate(salt, label) {
+        try {
+            const a = await navigator.credentials.get({
+                publicKey: {
+                    challenge: crypto.getRandomValues(new Uint8Array(32)),
+                    rpId: RP_ID,
+                    userVerification: "required",
+                    extensions: { prf: { eval: { first: salt } } }
+                }
+            });
+            const ext = a.getClientExtensionResults();
+            log("=== EVALUATION PRF (" + label + ") ===");
+            log("credential ID : " + a.id);
+            if (ext.prf && ext.prf.results && ext.prf.results.first) {
+                const out = ext.prf.results.first;
+                log("sortie (" + out.byteLength + " octets) :");
+                log(toHex(out));
+                log(">>> PRF FONCTIONNE");
+            } else {
+                log("Aucun resultat PRF.");
+                log("Extensions brutes : " + JSON.stringify(ext));
+                log(">>> PRF INDISPONIBLE");
+            }
+            log("");
+        } catch (e) { log("ERREUR get() : " + e.name + " - " + e.message + "\n"); }
+    }
+
+    document.getElementById("btn-a").onclick = () => evaluate(SALT_A, "sel A");
+    document.getElementById("btn-b").onclick = () => evaluate(SALT_B, "sel B");
+    document.getElementById("btn-clear").onclick = () => logEl.textContent = "";
+</script>
+</body>
+</html>

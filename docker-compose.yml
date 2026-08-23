@@ -21,6 +21,7 @@ services:
       KC_HTTPS_PORT: 8443
     volumes:
       - ./certs:/opt/keycloak/certs:ro
+      - keycloak_data:/opt/keycloak/data
     ports:
       - "8443:8443"
 
@@ -29,10 +30,16 @@ services:
     environment:
       SECRET_KEY: ${SECRET_KEY}
       DEBUG: ${DEBUG}
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER}
+      KEYCLOAK_JWKS_URL: ${KEYCLOAK_JWKS_URL}
+      KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      SSL_CERT_FILE: /certs/ca.crt
     volumes:
       - ./certs:/certs:ro
     depends_on:
       - db
+      - keycloak
     ports:
       - "8000:8000"
 
@@ -48,3 +55,4 @@ services:
 
 volumes:
   db_data:
+  keycloak_data:

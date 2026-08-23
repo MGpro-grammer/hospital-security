@@ -40,9 +40,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'django_extensions',
+    'accounts',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -128,3 +131,27 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+# --- Validation des jetons Keycloak -----------------------------------
+# Aucune valeur par defaut : l'application refuse de demarrer si une
+# variable manque, plutot que de tourner avec une configuration partielle.
+KEYCLOAK_ISSUER = env("KEYCLOAK_ISSUER")
+KEYCLOAK_JWKS_URL = env("KEYCLOAK_JWKS_URL")
+KEYCLOAK_AUDIENCE = env("KEYCLOAK_AUDIENCE")
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "accounts.authentication.KeycloakAuthentication",
+    ],
+    # Tout endpoint exige un jeton valide, SAUF mention explicite du contraire.
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "UNAUTHENTICATED_USER": None,
+}
+
+# Liste blanche stricte des origines autorisees a appeler l'API.
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")
+# Aucun cookie n'est utilise : l'authentification passe uniquement par
+# l'en-tete Authorization. CSRF est donc sans objet sur cette API.
+CORS_ALLOW_CREDENTIALS = False
