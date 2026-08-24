@@ -1,3 +1,4 @@
+name: hospital-security
 services:
   db:
     image: postgres:16
@@ -17,6 +18,7 @@ services:
     image: quay.io/keycloak/keycloak:26.7.2
     command:
       - start-dev
+      - --import-realm
       - --https-certificate-file=/opt/keycloak/certs/server.crt
       - --https-certificate-key-file=/opt/keycloak/certs/server.key
     environment:
@@ -26,6 +28,7 @@ services:
       KC_HTTPS_PORT: 8443
     volumes:
       - ./certs:/opt/keycloak/certs:ro
+      - ./keycloak/import:/opt/keycloak/data/import
       - keycloak_data:/opt/keycloak/data
     ports:
       - "8443:8443"
