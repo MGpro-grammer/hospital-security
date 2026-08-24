@@ -98,3 +98,31 @@ export async function unwrapDek(wrappedB64, privateKey) {
         'decrypt',
     ])
 }
+
+
+/**
+ * RE-SCELLE une DEK pour un autre destinataire, sans jamais la reconstruire.
+ *
+ * Le patient ouvre son enveloppe, et referme le contenu dans une enveloppe
+ * au nom du medecin. Entre les deux, la DEK n'existe que sous forme de
+ * quelques octets en memoire : on ne fabrique JAMAIS d'objet CryptoKey
+ * exportable, qui resterait a la portee d'un script malveillant.
+ *
+ * C'est cette fonction, et elle seule, qui rend le partage possible sans
+ * que le serveur ne puisse jamais lire quoi que ce soit.
+ *
+ * @param {string} wrappedB64 DEK chiffree pour l'appelant.
+ * @param {CryptoKey} privateKey Cle privee de l'appelant.
+ * @param {CryptoKey} recipientPublicKey Cle publique du destinataire.
+ * @returns {Promise<string>} DEK chiffree pour le destinataire, base64.
+ */
+export async function rewrapDek(wrappedB64, privateKey, recipientPublicKey) {
+    const raw = await crypto.subtle.decrypt(
+        { name: 'RSA-OAEP' },
+        privateKey,
+        b64ToBuf(wrappedB64),
+    )
+    return bufToB64(
+        await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, recipientPublicKey, raw),
+    )
+}

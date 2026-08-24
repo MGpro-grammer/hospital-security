@@ -40,3 +40,8 @@ export function apiGet(path) {
 export function apiPost(path, data) {
     return request(path, { method: 'POST', body: JSON.stringify(data) })
 }
+
+/** @param {string} path @returns {Promise<object>} */
+export function apiDelete(path) {
+    return request(path, { method: 'DELETE' })
+}
