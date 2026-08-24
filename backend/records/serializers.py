@@ -18,7 +18,7 @@ class FileUploadSerializer(serializers.Serializer):
     la liste signee dans la MEME transaction. Un fichier ne peut donc pas
     exister hors du manifeste.
     """
-
+    file_id = serializers.UUIDField()
     patient_sub = serializers.CharField(max_length=64)
     ciphertext = serializers.CharField()
     iv = serializers.CharField(max_length=32)

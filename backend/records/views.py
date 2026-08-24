@@ -21,10 +21,6 @@ def can_access_record(user, patient_sub):
     Un patient n'accede qu'a SON PROPRE dossier. Un medecin n'accede a un
     dossier que si un lien APPROUVE existe. Toute autre situation : refus.
 
-    Cette fonction est appelee sur CHAQUE endpoint, sans exception. Le role
-    porte par le jeton ne suffit pas : etre medecin n'ouvre aucun dossier
-    en particulier.
-
     @param user: utilisateur reconstruit depuis le jeton verifie
     @param patient_sub: identifiant du proprietaire du dossier
     @return: True si l'acces est legitime
@@ -47,9 +43,7 @@ def upload_file(request):
     Depose un fichier chiffre dans un dossier medical.
 
     Depot par le PATIENT   -> approuve immediatement, manifeste mis a jour.
-    Depot par un MEDECIN   -> en attente d'approbation, manifeste inchange
-                              (le fichier n'entre dans le dossier signe
-                              qu'une fois approuve par le patient).
+    Depot par un MEDECIN   -> en attente d'approbation, manifeste inchange.
     """
     serializer = FileUploadSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -58,6 +52,14 @@ def upload_file(request):
 
     if not can_access_record(request.user, patient_sub):
         return Response({"detail": "Acces refuse."}, status=status.HTTP_403_FORBIDDEN)
+
+    # L'identifiant est genere par le client : il doit figurer dans le
+    # manifeste signe avant l'envoi. Le serveur en verifie l'unicite.
+    if MedicalFile.objects.filter(id=data["file_id"]).exists():
+        return Response(
+            {"detail": "Identifiant de fichier deja utilise."},
+            status=status.HTTP_409_CONFLICT,
+        )
 
     est_patient = getattr(request.user, "is_patient", False)
 
@@ -84,6 +86,7 @@ def upload_file(request):
 
     with transaction.atomic():
         fichier = MedicalFile.objects.create(
+            id=data["file_id"],
             patient_id=patient_sub,
             ciphertext=data["ciphertext"],
             iv=data["iv"],

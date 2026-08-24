@@ -48,13 +48,12 @@ export async function enroll() {
 }
 
 /**
- * Recupere les cles privees chiffrees et les dechiffre localement en
- * rederivant la KEK depuis l'authentificateur.
+ * Recupere les cles de l'utilisateur et dechiffre les deux cles privees.
  *
- * UNE SEULE ceremonie WebAuthn pour les deux cles : la meme KEK protege
- * les deux.
+ * UNE SEULE ceremonie WebAuthn pour les deux : la meme KEK les protege.
  *
- * @returns {Promise<{privateKey: CryptoKey, signingKey: CryptoKey}>}
+ * @returns {Promise<{privateKey: CryptoKey, signingKey: CryptoKey,
+ *                    publicKey: string, signingPublicKey: string}>}
  */
 export async function restoreKeys() {
     const stored = await apiGet('/users/keys/me')
@@ -76,5 +75,10 @@ export async function restoreKeys() {
         ['sign'],
     )
 
-    return { privateKey, signingKey }
+    return {
+        privateKey,
+        signingKey,
+        publicKey: stored.public_key,
+        signingPublicKey: stored.signing_public_key,
+    }
 }
