@@ -6,6 +6,7 @@ import {
   fetchRecord,
   verifyRecord,
   uploadFile,
+  uploadFileAsDoctor,
   downloadFile,
 } from '@/services/records.js'
 
@@ -18,6 +19,14 @@ import {
   removeDoctor,
   requestAccess,
 } from '@/services/doctors.js'
+
+import {
+  approveFile,
+  rejectFile,
+  requestDeletion,
+  keepFile,
+  deleteFile,
+} from '@/services/approvals.js'
 
 export default {
   name: 'App',
@@ -42,6 +51,10 @@ export default {
       liens: [],
       recherchePatient: '',
       patients: [],
+      lienActif: null,
+      fichierMedecin: null,
+      dateExamenMedecin: '2026-03-12',
+      fichierARemplacer: null,
     }
   },
 
@@ -271,6 +284,7 @@ export default {
     async lireDossierDe(lien) {
       if (!this.cles) return this.log('Deverrouillez vos cles d abord.\n')
       try {
+        this.lienActif = lien
         const record = await fetchRecord(lien.patient_id)
         this.fichiers = record.files
         this.log(`=== DOSSIER DE ${lien.patient_name} : ${record.files.length} fichier(s) ===`)
@@ -289,6 +303,116 @@ export default {
       } catch (e) {
         this.erreur(e)
       }
+    },
+
+    /** @param {Event} evt */
+    choisirFichierMedecin(evt) {
+      this.fichierMedecin = evt.target.files[0] || null
+    },
+
+    async deposerPourPatient() {
+      if (!this.lienActif) return this.log('Ouvrez d abord le dossier d un patient.\n')
+      if (!this.fichierMedecin) return this.log('Choisissez un fichier.\n')
+      try {
+        this.log(`Chiffrement de "${this.fichierMedecin.name}"...`)
+        const r = await uploadFileAsDoctor(
+            { file: this.fichierMedecin, examDate: this.dateExamenMedecin },
+            {
+              patientSub: this.lienActif.patient_id,
+              patientPublicKey: this.lienActif.patient_public_key,
+              // patientSub porte ici le sub de L'UTILISATEUR COURANT,
+              // donc celui du medecin. Nom historique, a renommer un jour.
+              doctorSub: this.patientSub,
+              doctorPublicKey: this.cles.publicKey,
+              replaces: this.fichierARemplacer,
+            },
+        )
+        this.log(`Depose : ${r.fileId}`)
+        this.log('EN ATTENTE de l approbation du patient.')
+        this.log('')
+        this.fichierARemplacer = null
+        await this.lireDossierDe(this.lienActif)
+      } catch (e) {
+        this.erreur(e)
+      }
+    },
+
+    /** @param {object} f */
+    async approuverFichier(f) {
+      try {
+        this.log(`Approbation de ${f.id}...`)
+        const r = await approveFile(f, {
+          patientSub: this.patientSub,
+          signingKey: this.cles.signingKey,
+          privateKey: this.cles.privateKey,
+        })
+        this.log(`Fichier approuve. Statut : ${r.status}.`)
+        this.log('')
+        await this.lireDossier()
+      } catch (e) {
+        this.erreur(e)
+      }
+    },
+
+    /** @param {object} f */
+    async refuserFichier(f) {
+      try {
+        const r = await rejectFile(f.id)
+        this.log(r.detail)
+        this.log('')
+        await this.lireDossier()
+      } catch (e) {
+        this.erreur(e)
+      }
+    },
+
+    /** @param {object} f */
+    async supprimerFichier(f) {
+      if (!this.cles) return this.log('Deverrouillez vos cles d abord.\n')
+      try {
+        this.log(`Suppression de ${f.id}...`)
+        const r = await deleteFile(f.id, {
+          patientSub: this.patientSub,
+          signingKey: this.cles.signingKey,
+        })
+        this.log(r.detail)
+        this.log('')
+        await this.lireDossier()
+      } catch (e) {
+        this.erreur(e)
+      }
+    },
+
+    /** @param {object} f */
+    async conserverFichier(f) {
+      try {
+        const r = await keepFile(f.id)
+        this.log(`Demande de suppression refusee. Statut : ${r.status}.`)
+        this.log('')
+        await this.lireDossier()
+      } catch (e) {
+        this.erreur(e)
+      }
+    },
+
+    /** @param {object} f */
+    async demanderSuppression(f) {
+      try {
+        const r = await requestDeletion(f.id)
+        this.log(`Suppression demandee. Statut : ${r.status}.`)
+        this.log('En attente de la decision du patient.')
+        this.log('')
+        await this.lireDossierDe(this.lienActif)
+      } catch (e) {
+        this.erreur(e)
+      }
+    },
+
+    /** @param {object} f */
+    choisirRemplacement(f) {
+      this.fichierARemplacer = f.id
+      this.log(`Le prochain depot remplacera ${f.id}.`)
+      this.log('')
     },
 
     /** @param {string} id */
@@ -345,8 +469,22 @@ export default {
 
       <ul v-if="fichiers.length">
         <li v-for="f in fichiers" :key="f.id">
-          {{ f.id }} — {{ f.status }}
+          {{ f.id }} — <strong>{{ f.status }}</strong>
           <button @click="ouvrir(f.id)">Ouvrir</button>
+
+          <template v-if="f.status === 'pending_approval'">
+            <button @click="approuverFichier(f)">Approuver</button>
+            <button @click="refuserFichier(f)">Refuser</button>
+          </template>
+
+          <template v-if="f.status === 'pending_deletion'">
+            <button @click="supprimerFichier(f)">Confirmer la suppression</button>
+            <button @click="conserverFichier(f)">Conserver</button>
+          </template>
+
+          <button v-if="f.status === 'approved'" @click="supprimerFichier(f)">
+            Supprimer
+          </button>
         </li>
       </ul>
     </section>
@@ -400,10 +538,25 @@ export default {
         </li>
       </ul>
 
+      <div v-if="lienActif">
+        <h3>Deposer dans le dossier de {{ lienActif.patient_name }}</h3>
+        <p v-if="fichierARemplacer">
+          Remplacera : <code>{{ fichierARemplacer }}</code>
+          <button @click="fichierARemplacer = null">Annuler le remplacement</button>
+        </p>
+        <input type="file" @change="choisirFichierMedecin" />
+        <input v-model="dateExamenMedecin" type="date" />
+        <button @click="deposerPourPatient">9. Deposer (soumis a approbation)</button>
+      </div>
+
       <ul v-if="fichiers.length">
         <li v-for="f in fichiers" :key="f.id">
-          {{ f.id }} — {{ f.status }}
+          {{ f.id }} — <strong>{{ f.status }}</strong>
           <button @click="ouvrir(f.id)">Ouvrir</button>
+          <template v-if="f.status === 'approved'">
+            <button @click="choisirRemplacement(f)">Remplacer</button>
+            <button @click="demanderSuppression(f)">Demander la suppression</button>
+          </template>
         </li>
       </ul>
     </section>

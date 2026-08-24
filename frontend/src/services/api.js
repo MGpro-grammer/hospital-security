@@ -41,7 +41,16 @@ export function apiPost(path, data) {
     return request(path, { method: 'POST', body: JSON.stringify(data) })
 }
 
-/** @param {string} path @returns {Promise<object>} */
-export function apiDelete(path) {
-    return request(path, { method: 'DELETE' })
+/**
+ * @param {string} path
+ * @param {object} [data] Corps optionnel. Une suppression de fichier doit
+ *        transporter le nouveau manifeste signe : retirer un fichier du
+ *        dossier, c'est modifier la liste qui fait foi.
+ * @returns {Promise<object>}
+ */
+export function apiDelete(path, data) {
+    return request(path, {
+        method: 'DELETE',
+        ...(data ? { body: JSON.stringify(data) } : {}),
+    })
 }

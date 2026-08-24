@@ -136,3 +136,53 @@ export async function downloadFile(fileId, privateKey) {
     const dek = await unwrapDek(stored.wrapped_dek, privateKey)
     return decryptDocument({ iv: stored.iv, ciphertext: stored.ciphertext }, dek)
 }
+
+
+/**
+ * Depot d'un fichier par un MEDECIN dans le dossier d'un patient.
+ *
+ * Deux differences essentielles avec le depot par le patient :
+ *
+ *   1. AUCUN MANIFESTE n'est envoye. Le medecin ne possede pas la cle de
+ *      signature du patient, il ne PEUT donc pas modifier la liste signee.
+ *      Le fichier arrive en `pending_approval`, hors du dossier officiel.
+ *
+ *   2. La DEK est scellee POUR DEUX personnes : le medecin (pour se
+ *      relire) et le patient (pour pouvoir OUVRIR le fichier avant de
+ *      l'approuver). Approuver a l'aveugle n'aurait aucun sens.
+ *
+ * @param {{file: File, examDate: string}} document
+ * @param {{patientSub: string, patientPublicKey: string, doctorSub: string,
+ *          doctorPublicKey: string, replaces?: string}} contexte
+ * @returns {Promise<{fileId: string}>}
+ */
+export async function uploadFileAsDoctor({ file, examDate }, contexte) {
+    if (!contexte.patientPublicKey) {
+        throw new Error("Ce patient n'a pas enregistre ses cles.")
+    }
+
+    const fileId = crypto.randomUUID()
+    const dek = await generateDek()
+
+    const blob = await encryptDocument(
+        { filename: file.name, examDate, content: await file.arrayBuffer() },
+        dek,
+    )
+
+    const clePatient = await importPublicKey(contexte.patientPublicKey)
+    const cleMedecin = await importPublicKey(contexte.doctorPublicKey)
+
+    await apiPost('/records/files', {
+        file_id: fileId,
+        patient_sub: contexte.patientSub,
+        ciphertext: blob.ciphertext,
+        iv: blob.iv,
+        wrapped_keys: [
+            { recipient_sub: contexte.patientSub, wrapped_dek: await wrapDek(dek, clePatient) },
+            { recipient_sub: contexte.doctorSub, wrapped_dek: await wrapDek(dek, cleMedecin) },
+        ],
+        replaces: contexte.replaces || null,
+    })
+
+    return { fileId }
+}

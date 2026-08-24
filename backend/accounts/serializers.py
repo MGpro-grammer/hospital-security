@@ -80,6 +80,7 @@ class LinkSerializer(serializers.ModelSerializer):
     doctor_name = serializers.SerializerMethodField()
     patient_name = serializers.SerializerMethodField()
     doctor_public_key = serializers.SerializerMethodField()
+    patient_public_key = serializers.SerializerMethodField()
     patient_signing_public_key = serializers.SerializerMethodField()
 
     class Meta:
@@ -91,6 +92,7 @@ class LinkSerializer(serializers.ModelSerializer):
             "doctor_name",
             "patient_name",
             "doctor_public_key",
+            "patient_public_key",
             "patient_signing_public_key",
             "status",
             "initiated_by",
@@ -107,6 +109,16 @@ class LinkSerializer(serializers.ModelSerializer):
     def get_doctor_public_key(self, obj):
         """Cle de CHIFFREMENT du medecin : le patient s'en sert pour re-sceller ses DEK."""
         cles = UserKeys.objects.filter(keycloak_sub=obj.doctor_id).first()
+        return cles.public_key if cles else None
+
+    def get_patient_public_key(self, obj):
+        """
+        Cle de CHIFFREMENT du patient. Le medecin s'en sert pour sceller la
+        DEK d'un fichier qu'il depose, afin que le patient puisse l'OUVRIR
+        avant de l'approuver. Sans elle, le patient devrait approuver a
+        l'aveugle un document entrant dans son propre dossier.
+        """
+        cles = UserKeys.objects.filter(keycloak_sub=obj.patient_id).first()
         return cles.public_key if cles else None
 
     def get_patient_signing_public_key(self, obj):

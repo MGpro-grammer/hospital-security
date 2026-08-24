@@ -32,6 +32,14 @@ class MedicalFile(models.Model):
     uploaded_by = models.CharField(
         max_length=64, help_text="keycloak_sub de l'auteur du depot."
     )
+    replaces = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="replaced_by",
+        help_text="Fichier que celui-ci remplace (edition).",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
