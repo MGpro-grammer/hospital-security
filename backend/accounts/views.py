@@ -154,8 +154,14 @@ def _enregistrer_cles_rechiffrees(link, cles_rechiffrees):
             )
         )
 
+    # `ignore_conflicts=True` ignore silencieusement les cles deja
+    # presentes, et ne renseigne pas les cles primaires en retour. On
+    # compte donc de part et d'autre : un chiffre approximatif dans une
+    # interface de securite finit toujours par tromper quelqu'un.
+    filtre = WrappedKey.objects.filter(recipient_sub=link.doctor_id)
+    avant = filtre.count()
     WrappedKey.objects.bulk_create(a_creer, ignore_conflicts=True)
-    return len(a_creer)
+    return filtre.count() - avant
 
 
 @api_view(["GET"])
@@ -335,3 +341,61 @@ def delete_link(request, link_id):
         lien.delete()
 
     return Response({"detail": "Medecin retire.", "cles_supprimees": supprimees})
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def revoke_account(request):
+    """
+    REVOCATION D'UN COMPTE (ecart d'audit n°5).
+
+    `health.pdf` intitule sa section « User registration, authentication
+    AND REVOCATION ». Le retrait d'un medecin de la liste d'un patient
+    (Phase 7) ne couvre que la RELATION, pas le COMPTE.
+
+    Que se passe-t-il quand un medecin quitte son organisation ?
+
+    La revocation a DEUX etages, et les deux sont necessaires :
+
+      1. KEYCLOAK  -- un administrateur desactive le compte. Plus aucun
+         jeton n'est emis, et les jetons deja emis expirent en quelques
+         minutes. L'utilisateur ne peut plus s'AUTHENTIFIER.
+
+      2. APPLICATION (ici) -- tout son materiel cryptographique est
+         detruit : ses cles, ses liens, et surtout les DEK chiffrees a
+         son nom. Meme muni d'un jeton encore valide, il n'aurait plus
+         RIEN a dechiffrer.
+
+    Le second etage est le seul qui compte vraiment. Un controle d'acces
+    peut etre contourne ; une cle detruite ne revient pas.
+
+    LIMITE ASSUMEE : un fichier deja telecharge et dechiffre reste en sa
+    possession. Aucun systeme ne reprend une donnee deja livree.
+    """
+    sub = request.user.sub
+
+    with transaction.atomic():
+        # 1. Les DEK chiffrees a son nom. Sans elles, les blocs chiffres
+        #    des dossiers auxquels il avait acces lui sont definitivement
+        #    illisibles.
+        cles_supprimees = WrappedKey.objects.filter(recipient_sub=sub).delete()[0]
+
+        # 2. Ses liens. La suppression du profil les emporterait en
+        #    cascade ; on les compte explicitement pour la tracabilite.
+        liens_supprimes = DoctorPatientLink.objects.filter(
+            Q(patient_id=sub) | Q(doctor_id=sub)
+        ).delete()[0]
+
+        # 3. Son profil. Pour un PATIENT, la cascade emporte aussi ses
+        #    fichiers medicaux et son manifeste : son dossier disparait.
+        Patient.objects.filter(keycloak_sub=sub).delete()
+        Doctor.objects.filter(keycloak_sub=sub).delete()
+
+        # 4. Ses propres cles. Apres cette ligne, meme LUI ne peut plus
+        #    rien dechiffrer : sa cle privee chiffree n'existe plus.
+        UserKeys.objects.filter(keycloak_sub=sub).delete()
+
+    return Response({
+        "detail": "Compte revoque. Materiel cryptographique detruit.",
+        "cles_supprimees": cles_supprimees,
+        "liens_supprimes": liens_supprimes,
+    })

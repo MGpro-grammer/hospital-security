@@ -1,6 +1,6 @@
 <script>
 import { login, logout, handleRedirect } from '@/services/auth.js'
-import { enroll, restoreKeys } from '@/services/enrollment.js'
+import { enroll, restoreKeys, revokeAccount } from '@/services/enrollment.js'
 import { apiGet, apiPost } from '@/services/api.js'
 import {
   fetchRecord,
@@ -55,6 +55,7 @@ export default {
       fichierMedecin: null,
       dateExamenMedecin: '2026-03-12',
       fichierARemplacer: null,
+      confirmationRevocation: '',
     }
   },
 
@@ -142,6 +143,42 @@ export default {
         this.cles = await restoreKeys()
         this.log('Cles deverrouillees pour cette session.')
         this.log('')
+      } catch (e) {
+        this.erreur(e)
+      }
+    },
+
+    verrouiller() {
+      // Les objets CryptoKey sont NON EXTRACTIBLES : le JavaScript n'a
+      // jamais pu lire leurs octets, meme compromis. Les oublier retire
+      // la seule reference qui permettait de s'en servir ; le ramasse-
+      // miettes du navigateur fait le reste.
+      //
+      // C'est la reponse a la question 8 de la check-list cote client :
+      // les cles ne survivent pas a la fermeture de l'onglet, et
+      // l'utilisateur peut les retirer sans quitter sa session.
+      this.cles = null
+      this.fichiers = []
+      this.medecins = []
+      this.liens = []
+      this.log('Cles verrouillees. Redeverrouillez avec Windows Hello.')
+      this.log('')
+    },
+
+    async revoquerCompte() {
+      try {
+        const r = await revokeAccount()
+        this.log(r.detail)
+        this.log(`${r.cles_supprimees} cle(s) et ${r.liens_supprimes} lien(s) detruits.`)
+        this.log('')
+        this.log('IMPORTANT : demandez a un administrateur de desactiver')
+        this.log('votre compte Keycloak. Sans cela, vous pouvez encore')
+        this.log('vous connecter -- mais plus rien ne vous appartient ici.')
+        this.log('')
+        this.cles = null
+        this.fichiers = []
+        this.liens = []
+        this.confirmationRevocation = ''
       } catch (e) {
         this.erreur(e)
       }
@@ -458,6 +495,7 @@ export default {
       <h2>Cles</h2>
       <button @click="enregistrerCles">3. Enregistrer mes cles</button>
       <button @click="deverrouiller">4. Deverrouiller mes cles</button>
+      <button v-if="cles" @click="verrouiller">Verrouiller</button>
     </section>
 
     <section v-if="cles && estPatient">
@@ -561,6 +599,30 @@ export default {
       </ul>
     </section>
 
+    <section v-if="utilisateur" class="danger">
+      <h2>Zone dangereuse</h2>
+
+      <p>
+        <strong>Revoquer mon compte</strong> detruit definitivement vos cles,
+        vos autorisations et — si vous etes patient — <strong>tout votre
+        dossier medical</strong>.
+      </p>
+      <p>
+        Cette operation est <strong>irreversible</strong>. Aucune sauvegarde
+        n'existe : la cle qui protege votre cle privee est derivee de votre
+        authentificateur materiel et n'est stockee nulle part. Ni vous, ni
+        un administrateur ne peut revenir en arriere — et s'il le pouvait,
+        c'est qu'il pourrait lire vos dossiers.
+      </p>
+
+      <input v-model="confirmationRevocation" placeholder="Tapez REVOQUER" />
+      <button
+          @click="revoquerCompte"
+          :disabled="confirmationRevocation !== 'REVOQUER'">
+        Revoquer definitivement mon compte
+      </button>
+    </section>
+
     <pre>{{ journal }}</pre>
   </main>
 </template>
@@ -573,4 +635,6 @@ button, input { padding: .5rem .8rem; margin: .2rem .2rem .2rem 0; font-size: .9
 button { cursor: pointer; }
 li { margin: .3rem 0; font-family: monospace; font-size: .85rem; }
 pre { background: #f4f4f4; padding: 1rem; white-space: pre-wrap; word-break: break-all; }
+.danger { border: 2px solid #b00020; padding: .8rem 1rem; border-radius: 4px; }
+.danger h2 { color: #b00020; }
 </style>

@@ -6,6 +6,35 @@ import { API_BASE_URL } from '@/config.js'
 import { getToken } from './auth.js'
 
 /**
+ * Construit un message lisible a partir d'une reponse d'erreur.
+ *
+ * DRF renvoie deux formes :
+ *   {"detail": "Profil deja cree."}              -- erreur globale
+ *   {"organisation": ["This field is required."]} -- erreur par champ
+ *
+ * Le code d'origine ne lisait que `detail` et affichait un opaque
+ * "Erreur HTTP 400" dans le second cas.
+ *
+ * On n'affiche QUE des messages produits par la validation applicative,
+ * jamais une trace technique -- avec DEBUG=False le serveur n'en envoie
+ * de toute facon aucune, et c'est bien ainsi : un message d'erreur
+ * bavard renseigne autant l'attaquant que l'utilisateur.
+ *
+ * @param {object} body
+ * @param {number} statut
+ * @returns {string}
+ */
+function messageErreur(body, statut) {
+    if (typeof body.detail === 'string') return body.detail
+
+    const champs = Object.entries(body)
+        .filter(([, valeur]) => Array.isArray(valeur))
+        .map(([champ, messages]) => `${champ} : ${messages.join(' ')}`)
+
+    return champs.length ? champs.join(' | ') : `Erreur HTTP ${statut}`
+}
+
+/**
  * @param {string} path Chemin relatif, ex. "/users/keys/me".
  * @param {object} [options] Options fetch supplementaires.
  * @returns {Promise<object>} Le corps JSON de la reponse.
@@ -26,7 +55,7 @@ async function request(path, options = {}) {
 
     const body = await response.json().catch(() => ({}))
     if (!response.ok) {
-        throw new Error(body.detail || `Erreur HTTP ${response.status}`)
+        throw new Error(messageErreur(body, response.status))
     }
     return body
 }

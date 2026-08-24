@@ -128,14 +128,20 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
-
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+# --- Email ------------------------------------------------------------
+#
+# AUCUN reglage MAILERS : cette application n'envoie pas d'email.
+#
+# Le bloc genere par `startproject` utilisait le backend `console`, qui
+# AFFICHE les messages au lieu de les envoyer. Django refuse ce backend
+# en production (mail.E001), et il a raison : un systeme qui croit
+# envoyer des alertes alors qu'elles s'impriment dans un journal est
+# pire que pas d'alerte du tout.
+#
+# Le seul composant qui aurait pu envoyer du courrier est l'admin
+# Django (reinitialisation de mot de passe), desormais desactive hors
+# developpement. On supprime donc le reglage plutot que de configurer un
+# SMTP fictif : une configuration morte est une source d'erreur future.
 
 # --- Validation des jetons Keycloak -----------------------------------
 # Aucune valeur par defaut : l'application refuse de demarrer si une
@@ -153,6 +159,17 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
     "UNAUTHENTICATED_USER": None,
+    # Limitation de debit. Les classes sont evaluees a chaque requete ;
+    # AnonRateThrottle ne compte QUE les requetes non authentifiees.
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "accounts.throttling.SubRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "30/min",  # visiteur anonyme : lecture de /api/health surtout
+        "user": "120/min",  # usage normal : quelques appels par action
+        "upload": "20/hour",  # depot de fichier : rare et couteux
+    },
 }
 
 # Liste blanche stricte des origines autorisees a appeler l'API.
@@ -160,3 +177,95 @@ CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")
 # Aucun cookie n'est utilise : l'authentification passe uniquement par
 # l'en-tete Authorization. CSRF est donc sans objet sur cette API.
 CORS_ALLOW_CREDENTIALS = False
+
+# --- Durcissement (Phase 9) -------------------------------------------
+#
+# Ces reglages n'ont d'effet reel qu'avec DEBUG=False. Les laisser
+# explicites plutot que de compter sur les valeurs par defaut de Django
+# permet de les DEFENDRE un par un.
+
+# HSTS : le navigateur memorise que ce domaine ne doit JAMAIS etre
+# contacte en clair. Meme si l'utilisateur tape "http://", le navigateur
+# corrige avant d'emettre la moindre requete.
+#
+# Valeur courte (1 heure) et NON preload, deliberement : une valeur d'un
+# an gravee dans le navigateur du correcteur serait penible a annuler
+# apres la demonstration. En production reelle : 31536000.
+SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=3600)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = False
+
+# W021 (HSTS preload) est ECARTE VOLONTAIREMENT.
+#
+# La liste de prechargement HSTS est gravee en dur dans le code source
+# des navigateurs. Un domaine qui y figure n'est plus JAMAIS contacte en
+# clair, par aucun navigateur, meme a la premiere visite. En sortir prend
+# des mois.
+#
+# Notre domaine est `localhost` : il designe la machine de celui qui tape
+# l'adresse. Le prechargement n'a aucun sens ici, et personne ne peut
+# d'ailleurs soumettre `localhost` a cette liste.
+#
+# On ecarte donc le controle en le JUSTIFIANT, plutot que de le
+# satisfaire par une valeur qui serait fausse.
+SILENCED_SYSTEM_CHECKS = ["security.W021"]
+
+# Toute requete arrivant en clair est redirigee vers HTTPS.
+SECURE_SSL_REDIRECT = not DEBUG
+
+# Les cookies de session ne partent jamais en clair et sont invisibles
+# au JavaScript. L'API n'utilise aucun cookie (authentification par
+# en-tete Bearer), mais l'admin Django en pose : on les protege.
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = True
+
+# Actifs par defaut en Django 6 ; rendus explicites pour la relecture.
+SECURE_CONTENT_TYPE_NOSNIFF = True   # pas de devinette de type MIME
+X_FRAME_OPTIONS = "DENY"             # pas d'inclusion en iframe (clickjacking)
+SECURE_REFERRER_POLICY = "same-origin"
+
+# --- Journalisation ---------------------------------------------------
+#
+# Avec DEBUG=False, le client ne recoit qu'un message d'erreur generique :
+# ni trace d'execution, ni requete SQL, ni variable d'environnement.
+#
+# Mais le detail ne doit pas disparaitre pour autant : il part dans le
+# journal du conteneur, cote serveur, la ou seul l'exploitant le lit.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {"format": "{levelname} {asctime} {name} {message}", "style": "{"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "simple"},
+    },
+    "root": {"handlers": ["console"], "level": "INFO"},
+    "loggers": {
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}
+
+# --- Cache partage ----------------------------------------------------
+#
+# Indispensable a la limitation de debit : gunicorn tourne avec 3
+# workers, donc 3 processus. Le cache par defaut (`LocMemCache`) est
+# PROPRE A CHAQUE PROCESSUS : chacun tiendrait son propre compteur, et
+# une limite de "30 par minute" en autoriserait 90.
+#
+# Une limite qu'on croit appliquer mais qui ne l'est pas est PIRE qu'une
+# absence de limite : elle donne une fausse assurance.
+#
+# On utilise PostgreSQL, deja present, comme cache partage. Aucun service
+# supplementaire a deployer, un seul compteur pour tous les workers.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "django_cache",
+    }
+}

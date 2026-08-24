@@ -12,7 +12,7 @@ import {
     exportPublicKey,
     SIGN_ALG,
 } from '@/crypto/keys.js'
-import { apiGet, apiPost } from './api.js'
+import { apiGet, apiPost, apiDelete } from './api.js'
 
 /**
  * Genere les DEUX paires de cles de l'utilisateur et les transmet au serveur.
@@ -81,4 +81,20 @@ export async function restoreKeys() {
         publicKey: stored.public_key,
         signingPublicKey: stored.signing_public_key,
     }
+}
+
+
+/**
+ * Detruit tout le materiel cryptographique de l'utilisateur courant.
+ *
+ * IRREVERSIBLE. Aucune sauvegarde n'existe : la cle qui protege la cle
+ * privee est derivee de l'authentificateur materiel et n'a jamais ete
+ * stockee nulle part. Ni le serveur, ni un administrateur ne peuvent
+ * revenir en arriere -- et s'ils le pouvaient, c'est qu'ils pourraient
+ * lire les dossiers.
+ *
+ * @returns {Promise<object>}
+ */
+export function revokeAccount() {
+    return apiDelete('/users/me')
 }

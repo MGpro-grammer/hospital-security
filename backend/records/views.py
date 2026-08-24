@@ -1,6 +1,6 @@
 from django.db import transaction
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -14,6 +14,7 @@ from .serializers import (
     MedicalFileSerializer,
 )
 from accounts.permissions import IsDoctor, IsPatient
+from accounts.throttling import UploadRateThrottle
 
 
 def can_access_record(user, patient_sub):
@@ -40,6 +41,7 @@ def can_access_record(user, patient_sub):
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
+@throttle_classes([UploadRateThrottle])
 def upload_file(request):
     """
     Depose un fichier chiffre dans un dossier medical.
