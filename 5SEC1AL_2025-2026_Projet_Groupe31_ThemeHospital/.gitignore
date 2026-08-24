@@ -1,0 +1,29 @@
+# Secrets — ne jamais committer
+.env
+
+# Environnements
+backend/.venv/
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+backend/db.sqlite3
+
+# IDE
+.idea/
+.vscode/
+
+# Vagrant (Phase 10bis)
+.vagrant/
+*.box
+
+# Certificats locaux (Phase 1) : on ignore les cles et certificats generes,
+# mais on versionne le script et la configuration qui les produisent.
+certs/*
+!certs/generate-certs.sh
+!certs/server.ext
+*.pem
+*.key
+*.crt
+*.srl

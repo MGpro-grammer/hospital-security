@@ -1,17 +1,11 @@
-# Hospital Security — Groupe 31
+# 5SEC1A — Projet de sécurité — Groupe 31
 
-## Membres
 - Mouratidis Georges (62218)
 - Grande Ian (62265)
 
-## Prérequis
-- Docker Desktop
+Le projet se trouve dans le dossier **`5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital/`**.
 
-## Installation
-./install.sh
+    cd 5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital
+    ./install.sh
 
-## Utilisation
-(à compléter)
-
-## Architecture
-Vue.js (frontend) / Django (backend) / Keycloak (auth) / PostgreSQL, orchestrés via Docker Compose.
+Les instructions complètes d'installation et d'utilisation sont dans le README de ce dossier.
