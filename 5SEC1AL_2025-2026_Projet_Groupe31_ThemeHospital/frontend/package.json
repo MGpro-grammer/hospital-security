@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test:unit": "vitest",
     "lint": "eslint . --fix",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/",
+    "docs": "jsdoc -c jsdoc.json"
   },
   "dependencies": {
     "pinia": "^4.0.2",
@@ -28,7 +29,8 @@
     "prettier": "3.9.5",
     "vite": "^8.1.5",
     "vite-plugin-vue-devtools": "^8.1.5",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "jsdoc": "^4.0.4"
   },
   "engines": {
     "node": "^22.18.0 || >=24.12.0"

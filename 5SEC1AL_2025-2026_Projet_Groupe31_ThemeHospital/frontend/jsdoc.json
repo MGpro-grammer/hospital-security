@@ -1,0 +1,16 @@
+{
+  "source": {
+    "include": ["src"],
+    "includePattern": "\\.js$",
+    "exclude": ["src/__tests__"]
+  },
+  "opts": {
+    "destination": "docs/",
+    "recurse": true
+  },
+  "templates": {
+    "default": {
+      "outputSourceFiles": true
+    }
+  }
+}

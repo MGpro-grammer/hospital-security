@@ -27,3 +27,9 @@ certs/*
 *.key
 *.crt
 *.srl
+
+# Documentation GENEREE. Les sources et les configurations sont
+# versionnees ; la sortie ne l'est pas -- elle se reconstruit en une
+# commande et n'a pas a encombrer l'historique.
+backend/docs/_build/
+frontend/docs/

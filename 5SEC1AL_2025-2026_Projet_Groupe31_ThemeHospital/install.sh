@@ -1,7 +1,64 @@
 #!/usr/bin/env bash
 #
-# Installation complete du projet. Idempotent : relancable sans risque.
+# Installation complete du projet Hospital Security.
+# Idempotent : relancable sans risque.
 set -e
+
+SUDO=""
+if [ "$(id -u)" -ne 0 ]; then SUDO="sudo"; fi
+
+installer_docker_ubuntu() {
+    echo "  Installation de Docker Engine depuis le depot OFFICIEL Docker..."
+    $SUDO apt-get update
+    $SUDO apt-get install -y ca-certificates curl gnupg
+    $SUDO install -m 0755 -d /etc/apt/keyrings
+
+    # On enregistre la cle GPG du depot officiel : apt verifiera la
+    # SIGNATURE de chaque paquet installe.
+    #
+    # On n'execute JAMAIS un script telecharge ("curl ... | sh") : ce
+    # serait accorder les droits root a un contenu distant non verifie.
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+        | $SUDO gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    $SUDO chmod a+r /etc/apt/keyrings/docker.gpg
+
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+        | $SUDO tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    $SUDO apt-get update
+    $SUDO apt-get install -y docker-ce docker-ce-cli containerd.io \
+        docker-buildx-plugin docker-compose-plugin
+}
+
+# --- 0. Dependances ---------------------------------------------------
+echo "[0/5] Verification des dependances..."
+
+if ! command -v openssl > /dev/null 2>&1; then
+    if command -v apt-get > /dev/null 2>&1; then
+        echo "  openssl manquant : installation..."
+        $SUDO apt-get update
+        $SUDO apt-get install -y openssl
+    else
+        echo "  ERREUR : openssl est requis. Installez-le puis relancez." >&2
+        exit 1
+    fi
+fi
+
+if ! command -v docker > /dev/null 2>&1; then
+    if [ -f /etc/os-release ] && grep -qiE 'ubuntu|debian' /etc/os-release; then
+        installer_docker_ubuntu
+    else
+        echo "  ERREUR : Docker est requis mais absent." >&2
+        echo "  Sous Windows ou macOS, installez Docker Desktop :" >&2
+        echo "  https://docs.docker.com/get-docker/" >&2
+        exit 1
+    fi
+fi
+
+if ! docker compose version > /dev/null 2>&1; then
+    echo "  ERREUR : le plugin 'docker compose' (v2) est requis." >&2
+    exit 1
+fi
 
 # --- 1. Fichier de configuration --------------------------------------
 #
@@ -56,3 +113,5 @@ echo ""
 echo "IMPORTANT : installez certs/ca.crt dans le magasin de certificats de"
 echo "confiance de votre systeme. Sans cela le navigateur affichera un"
 echo "avertissement, et WebAuthn REFUSERA de fonctionner."
+echo "La procedure exacte est dans le README, section \"Faire confiance a"
+echo "l'autorite locale\"."
