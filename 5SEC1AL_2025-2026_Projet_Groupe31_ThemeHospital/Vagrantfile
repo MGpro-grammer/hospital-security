@@ -1,0 +1,45 @@
+# -*- mode: ruby -*-
+#
+# VM de demonstration - Hospital Security, projet 5SEC1A groupe 31.
+#
+# Objectif : prouver, sur une Ubuntu 22.04 x64 VIERGE, que le README
+# fonctionne a la lettre. Ce n'est pas un livrable exige par health.pdf :
+# le projet doit rester lancable sans Vagrant.
+#
+# AUCUN PROVISIONNEMENT N'EST DEFINI, ET C'EST VOLONTAIRE.
+#
+# health.pdf exige que le script d'installation installe lui-meme les
+# dependances manquantes. Installer Docker depuis ce fichier masquerait
+# un defaut d'install.sh au lieu de le reveler. La VM doit etre aussi
+# nue que la machine du correcteur.
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "bento/ubuntu-22.04"
+  config.vm.hostname = "hospital-security"
+
+  # Les ports doivent etre IDENTIQUES cote hote et cote invite.
+  #
+  # `frontend/src/config.js` et les URI de redirection du client
+  # Keycloak designent explicitement https://localhost,
+  # https://localhost:8000 et https://localhost:8443. Un port different
+  # cote hote casserait la redirection OIDC et la politique CORS.
+  #
+  # host_ip 127.0.0.1 : la VM n'est joignable que depuis cette machine,
+  # jamais depuis le reseau local.
+   # Le port 80 ne sert qu'a une chose : montrer la redirection
+  # structurelle HTTP -> HTTPS mise en place en Phase 1. Aucune donnee
+  # ne transite jamais en clair sur ce port.
+  config.vm.network "forwarded_port", guest: 80,   host: 80,   host_ip: "127.0.0.1"
+  config.vm.network "forwarded_port", guest: 443,  host: 443,  host_ip: "127.0.0.1"
+  config.vm.network "forwarded_port", guest: 8000, host: 8000, host_ip: "127.0.0.1"
+  config.vm.network "forwarded_port", guest: 8443, host: 8443, host_ip: "127.0.0.1"
+
+  # Le dossier du projet est partage en lecture/ecriture sur /vagrant.
+  config.vm.synced_folder ".", "/vagrant"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.name   = "hospital-security-demo"
+    vb.memory = 6144   # Keycloak + PostgreSQL + Django + nginx + builds
+    vb.cpus   = 2
+  end
+end

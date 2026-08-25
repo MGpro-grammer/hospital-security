@@ -60,6 +60,32 @@ if ! docker compose version > /dev/null 2>&1; then
     exit 1
 fi
 
+# --- Acces au demon Docker --------------------------------------------
+#
+# Sur une installation neuve, /var/run/docker.sock appartient au groupe
+# `docker` et l'utilisateur courant n'y est pas encore. Or l'appartenance
+# a un groupe n'est prise en compte qu'a la PROCHAINE ouverture de
+# session : l'ajouter ne debloque pas le script en cours.
+#
+# On fait donc les deux :
+#   - ajout au groupe, pour les commandes futures de l'utilisateur ;
+#   - prefixe sudo pour CE script, si le socket n'est pas joignable.
+#
+# A savoir : appartenir au groupe `docker` equivaut a un acces root sur
+# la machine (on peut monter n'importe quel repertoire de l'hote dans un
+# conteneur privilegie). C'est une commodite de developpement, pas une
+# configuration de production.
+
+DOCKER="docker"
+if ! docker info > /dev/null 2>&1; then
+    $SUDO groupadd -f docker
+    $SUDO usermod -aG docker "$USER"
+    DOCKER="$SUDO docker"
+    echo "  Utilisateur '$USER' ajoute au groupe 'docker'."
+    echo "  Cette execution passe par sudo ; rouvrez votre session pour"
+    echo "  utiliser 'docker' sans sudo par la suite."
+fi
+
 # --- 1. Fichier de configuration --------------------------------------
 #
 # .env n'est PAS versionne : il contient des secrets. On le fabrique ici
@@ -91,15 +117,15 @@ bash certs/generate-certs.sh
 
 # --- 3. Construction et demarrage -------------------------------------
 echo "[3/5] Construction des images et demarrage des services..."
-docker compose up --build -d
+$DOCKER compose up --build -d
 
 # --- 4. Base de donnees -----------------------------------------------
 echo "[4/5] Migrations et table de cache..."
-docker compose exec -T django python manage.py migrate
+$DOCKER compose exec -T django python manage.py migrate
 
 # Table du cache PARTAGE entre les 3 workers gunicorn. Sans elle, la
 # limitation de debit echoue au premier appel.
-docker compose exec -T django python manage.py createcachetable
+$DOCKER compose exec -T django python manage.py createcachetable
 
 # --- 5. Fin -----------------------------------------------------------
 echo ""
