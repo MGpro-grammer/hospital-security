@@ -93,3 +93,25 @@ exists in plaintext: it encrypts and decrypts everything locally and only exchan
 
 All communications use HTTPS, without exception. The Keycloak realm (passwordless flow, client, groups and
 WebAuthn policy) is imported automatically at first startup.
+
+
+## Security design
+
+### Key derivation
+
+Sign-in is passwordless, and so is the protection of the keys. When a user unlocks their keys, the browser asks
+the authenticator for a PRF output: 32 deterministic bytes that only this passkey can produce. HKDF-SHA-256 turns
+them into a non-extractable AES-256-GCM key-encryption key (KEK), which decrypts the user's two RSA private keys:
+one to decrypt file keys, one to sign the manifest. The server keeps these private keys, but only in encrypted
+form, and has no way to open them.
+
+![Key derivation chain: the authenticator produces a PRF output, HKDF-SHA-256 derives the KEK in browser memory, and the KEK wraps the RSA-OAEP and RSA-PSS private keys stored on the server](docs/images/key-derivation.svg)
+
+### Envelope encryption
+
+Each file gets its own random data-encryption key (DEK). The file name, exam date and content are serialised
+together and encrypted once with AES-256-GCM, so the server does not even know the names of the documents it
+hosts. The DEK is then wrapped with RSA-OAEP for each person allowed to read the file: granting access to a doctor
+adds an envelope, and revoking it deletes the envelope.
+
+![Envelope encryption: the file is encrypted once with its DEK, and the DEK is wrapped separately with the patient's and the doctor's public keys](docs/images/envelope-encryption.svg)

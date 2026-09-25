@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="372" viewBox="0 0 1000 372" font-family="Segoe UI, -apple-system, Helvetica, Arial, sans-serif">
+  <title>Hospital Security — key derivation chain</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0F172A" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="1000" height="372" rx="16" fill="#FFFFFF"/>
+
+  <!-- Zone brackets -->
+  <rect x="272" y="24" width="433" height="248" rx="14" fill="#F0FDF4" stroke="#22C55E" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <text x="292" y="50" font-size="12" font-weight="700" fill="#15803D" letter-spacing="1.2">BROWSER MEMORY ONLY — NEVER STORED</text>
+
+  <rect x="740" y="24" width="240" height="248" rx="14" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <text x="760" y="50" font-size="12" font-weight="700" fill="#475569" letter-spacing="1.2">STORED ON THE SERVER</text>
+
+  <!-- 1. Authenticator -->
+  <g filter="url(#shadow)">
+    <rect x="20" y="95" width="185" height="120" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  </g>
+  <rect x="20" y="95" width="6" height="120" rx="3" fill="#0F172A"/>
+  <text x="40" y="128" font-size="15" font-weight="700" fill="#0F172A">Authenticator</text>
+  <text x="40" y="150" font-size="12" fill="#64748B">Windows Hello</text>
+  <text x="40" y="168" font-size="12" fill="#64748B">FIDO2 security key</text>
+  <text x="40" y="195" font-size="11" font-style="italic" fill="#64748B">secret never leaves it</text>
+
+  <!-- arrow 1 -->
+  <line x1="205" y1="155" x2="286" y2="155" stroke="#475569" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <text x="238" y="185" font-size="11.5" font-weight="600" fill="#334155" text-anchor="middle">PRF</text>
+  <text x="238" y="200" font-size="10.5" fill="#64748B" text-anchor="middle">hmac-secret</text>
+
+  <!-- 2. PRF output -->
+  <g filter="url(#shadow)">
+    <rect x="290" y="95" width="170" height="120" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  </g>
+  <rect x="290" y="95" width="6" height="120" rx="3" fill="#3423A6"/>
+  <text x="310" y="128" font-size="15" font-weight="700" fill="#0F172A">PRF output</text>
+  <text x="310" y="150" font-size="12" fill="#64748B">32 bytes</text>
+  <text x="310" y="168" font-size="12" fill="#64748B">deterministic</text>
+  <text x="310" y="195" font-size="11" font-style="italic" fill="#64748B">same passkey, same bytes</text>
+
+  <!-- arrow 2 -->
+  <line x1="460" y1="155" x2="521" y2="155" stroke="#475569" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <text x="491" y="185" font-size="11.5" font-weight="600" fill="#334155" text-anchor="middle">HKDF</text>
+  <text x="491" y="200" font-size="10.5" fill="#64748B" text-anchor="middle">SHA-256</text>
+
+  <!-- 3. KEK -->
+  <g filter="url(#shadow)">
+    <rect x="525" y="95" width="160" height="120" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  </g>
+  <rect x="525" y="95" width="6" height="120" rx="3" fill="#7C3AED"/>
+  <text x="545" y="128" font-size="15" font-weight="700" fill="#0F172A">KEK</text>
+  <text x="545" y="150" font-size="12" fill="#64748B">AES-256-GCM</text>
+  <text x="545" y="168" font-size="12" fill="#64748B">non-extractable</text>
+  <text x="545" y="195" font-size="11" font-style="italic" fill="#64748B">wraps both private keys</text>
+
+  <!-- arrows 3 (fan-out to both private keys) -->
+  <path d="M685,155 C720,155 720,110 756,110" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <path d="M685,155 C720,155 720,210 756,210" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- 4a. RSA-OAEP private key -->
+  <g filter="url(#shadow)">
+    <rect x="760" y="72" width="205" height="76" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  </g>
+  <rect x="760" y="72" width="6" height="76" rx="3" fill="#336791"/>
+  <text x="780" y="100" font-size="14" font-weight="700" fill="#0F172A">RSA-OAEP private key</text>
+  <text x="780" y="120" font-size="12" fill="#64748B">2048-bit · decrypts file keys</text>
+  <text x="780" y="137" font-size="11" font-style="italic" fill="#64748B">stored encrypted</text>
+
+  <!-- 4b. RSA-PSS private key -->
+  <g filter="url(#shadow)">
+    <rect x="760" y="172" width="205" height="76" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  </g>
+  <rect x="760" y="172" width="6" height="76" rx="3" fill="#336791"/>
+  <text x="780" y="200" font-size="14" font-weight="700" fill="#0F172A">RSA-PSS private key</text>
+  <text x="780" y="220" font-size="12" fill="#64748B">2048-bit · signs the manifest</text>
+  <text x="780" y="237" font-size="11" font-style="italic" fill="#64748B">stored encrypted</text>
+
+  <!-- Key facts -->
+  <rect x="20" y="290" width="960" height="66" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <circle cx="40" cy="314" r="3" fill="#22C55E"/>
+  <text x="52" y="318" font-size="12.5" fill="#334155">The server stores the private keys only in encrypted form: the KEK that opens them exists only in browser memory, during the session.</text>
+  <circle cx="40" cy="336" r="3" fill="#22C55E"/>
+  <text x="52" y="340" font-size="12.5" fill="#334155">Losing the passkey means losing access to the record — no one, not even an administrator, can recover the KEK.</text>
+</svg>
