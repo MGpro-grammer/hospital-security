@@ -125,11 +125,11 @@ Attendu : quatre services `Up`, `db` en `healthy`.
 
 Les certificats sont dans le dossier partagé, donc visibles depuis l'hôte. Si `certs/ca.crt` était déjà installé, **il n'y a rien à faire** : `generate-certs.sh` conserve une autorité existante.
 
-Sinon, depuis l'hôte, section 4 du README.
+Sinon, depuis l'hôte, suivre la section « Trust the local certificate authority » du README principal.
 
 ### 7. Dérouler le scénario
 
-Depuis le navigateur **de l'hôte**, ouvrir `https://localhost` et suivre la section 6 du README.
+Depuis le navigateur **de l'hôte**, ouvrir `https://localhost` et suivre la section « Usage » du README principal.
 
 > ⚠️ Le Keycloak de la VM est **vierge**. Les comptes de développement n'y existent pas : ils vivent dans des volumes Docker de la machine hôte. Le sélecteur de clés d'accès du système proposera d'anciennes entrées `localhost` que ce Keycloak ne connaît pas. **Créer des comptes neufs**, et vérifier la ligne `Connecte :` du journal après chaque connexion.
 
