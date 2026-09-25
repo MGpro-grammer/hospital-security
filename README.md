@@ -415,3 +415,17 @@ automatically at the next startup, but user accounts must be created again.
 > After a reset, the old passkeys remain registered in the operating system although the matching accounts no
 > longer exist. Delete them before registering again (Windows Settings → Accounts → Passkeys, filter `localhost`).
 
+
+## Known limitations
+
+These limitations are identified and assumed. Most of them are inherent to end-to-end encryption rather than
+to this implementation.
+
+| Limitation                               | Explanation                                                                                     |
+|------------------------------------------|-------------------------------------------------------------------------------------------------|
+| **Losing the passkey means losing the record** | The key that protects the private keys is derived from the authenticator and stored nowhere. Deleting the passkey makes the record permanently unreadable. Neither the server nor an administrator can help: if they could, they could also read it. |
+| **A downloaded file cannot be revoked**  | Removing a doctor stops future access, not the copy they have already decrypted. No system can take back data that has already been delivered. |
+| **Public key substitution by the server** | Users' public keys are distributed by the API. A malicious server could replace a doctor's public key with its own and read the files a patient believes they are sharing with that doctor. Closing this gap requires out-of-band verification between users (comparing key fingerprints, scanning a QR code in person), as in end-to-end encrypted messaging apps. This is beyond the scope of the project. |
+| **Physical remanence in the database**   | PostgreSQL does not immediately overwrite deleted disk blocks. But deleting a file also deletes its keys, so the encrypted blob, even if recovered, can never be read again. This is crypto-shredding: instead of relying on erasure, the key is destroyed. |
+| **Browser memory**                       | No web application can guarantee that RAM is wiped. Keys are non-extractable `CryptoKey` objects, never stored in `localStorage`, and the **Verrouiller** button removes the only usable reference to them. |
+
