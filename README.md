@@ -429,3 +429,35 @@ to this implementation.
 | **Physical remanence in the database**   | PostgreSQL does not immediately overwrite deleted disk blocks. But deleting a file also deletes its keys, so the encrypted blob, even if recovered, can never be read again. This is crypto-shredding: instead of relying on erasure, the key is destroyed. |
 | **Browser memory**                       | No web application can guarantee that RAM is wiped. Keys are non-extractable `CryptoKey` objects, never stored in `localStorage`, and the **Verrouiller** button removes the only usable reference to them. |
 
+
+## Team
+
+| Member                                                                      | Role         |
+|-----------------------------------------------------------------------------|--------------|
+| **Georges Mouratidis** ([@MGpro-grammer](https://github.com/MGpro-grammer)) | Co-developer |
+| **Ian Grande** ([@ian-grande-dev](https://github.com/ian-grande-dev))       | Co-developer |
+
+The project was designed and built jointly, with both members working side by side on every part of the
+system: cryptography, backend, frontend and infrastructure. This was a deliberate choice for a project where
+the security of medical data leaves no room for approximation.
+
+## Roadmap
+
+- [ ] Verify users' public keys out of band (key fingerprints or QR codes) to close the public key substitution gap.
+- [ ] Allow a backup authenticator, by wrapping the private keys under a second KEK, so that losing one passkey
+  no longer means losing the record.
+- [ ] Extend the backend test suite: authentication, permissions, rate limiting, manifest versioning and the
+  approval workflow.
+- [ ] Add end-to-end tests of the full patient and doctor journey, using a virtual WebAuthn authenticator.
+- [ ] Run the tests and dependency audits on every push with a continuous integration pipeline.
+- [ ] Remove the unused Vue Router and Pinia scaffolding.
+- [ ] Make the user interface available in English.
+
+## Acknowledgements
+
+- Our teachers at HE2B ESI for their guidance throughout the Security course.
+- A special thanks to Ian Grande for a rigorous and demanding collaboration from start to finish.
+- [Keycloak](https://www.keycloak.org/), [Django](https://www.djangoproject.com/) and [Vue.js](https://vuejs.org/)
+  for the open-source foundations of the project.
+- The [W3C Web Authentication](https://www.w3.org/TR/webauthn-3/) specification and its PRF extension, which make
+  passwordless, hardware-bound encryption keys possible in the browser.
