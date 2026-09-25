@@ -22,6 +22,23 @@
 > [`5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital/README.md`](5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital/README.md).
 
 
+## Table of contents
+
+- [About](#about)
+- [Features](#features)
+- [Tech stack](#tech-stack)
+- [Architecture](#architecture)
+- [Security design](#security-design)
+- [Project structure](#project-structure)
+- [Getting started](#getting-started)
+- [Testing](#testing)
+- [Developer documentation](#developer-documentation)
+- [Operations](#operations)
+- [Known limitations](#known-limitations)
+- [Team](#team)
+- [Roadmap](#roadmap)
+- [Acknowledgements](#acknowledgements)
+
 ## About
 
 **Hospital Security** is a client/server application for managing medical records. A **patient** uploads,
