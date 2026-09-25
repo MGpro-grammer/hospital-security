@@ -20,3 +20,23 @@
 > [!NOTE]
 > This README is being rewritten. Installation and usage instructions are currently available in
 > [`5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital/README.md`](5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital/README.md).
+
+
+## About
+
+**Hospital Security** is a client/server application for managing medical records. A **patient** uploads,
+views, updates and deletes the files of their medical record, and decides which **doctors** may access it.
+An authorised doctor can read the record and propose to add, replace or delete a file — every proposal
+requires the patient's explicit approval.
+
+**The server cannot read any medical content.** All encryption and decryption happen in the browser: the
+server only stores encrypted blobs and keys that are themselves encrypted, which it has no way to open.
+Even file names and exam dates are encrypted together with the content.
+
+Sign-in is **passwordless**, with WebAuthn passkeys. The key that protects each user's private keys is
+derived from their authenticator through the WebAuthn **PRF** extension: it is never stored, neither on the
+server nor on disk.
+
+> **Context** — Academic team project carried out at HE2B ESI (Brussels) by **Georges Mouratidis** and
+> **Ian Grande** for the Security course (2025-2026), with a strong focus on end-to-end encryption,
+> passwordless authentication and a documented threat model.
