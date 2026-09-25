@@ -185,3 +185,75 @@ hospital-security/
     ├── docs/                                   # Security checklist answers, Vagrant demo notes (French)
     └── *_medical_records_*.txt                 # Fictitious sample documents for testing
 ```
+
+
+## Getting started
+
+### Prerequisites
+
+- **Docker Engine** with the **Docker Compose v2** plugin (Docker Desktop on Windows)
+- **OpenSSL** (provided by Git for Windows on Windows)
+- A recent **Chromium-based browser**: Microsoft Edge or Google Chrome
+- A **WebAuthn authenticator supporting the PRF extension** — see [Authenticator requirements](#authenticator-requirements)
+
+On Ubuntu, `install.sh` installs Docker and OpenSSL if they are missing.
+
+### Installation
+
+**Ubuntu 22.04**
+
+```bash
+git clone https://github.com/MGpro-grammer/hospital-security.git
+cd hospital-security/5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital
+chmod +x install.sh
+./install.sh
+```
+
+**Windows 10/11 (PowerShell)** — requires Docker Desktop (started) and Git for Windows.
+
+```powershell
+git clone https://github.com/MGpro-grammer/hospital-security.git
+cd hospital-security\5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital
+& "C:\Program Files\Git\bin\bash.exe" install.sh
+```
+
+> [!NOTE]
+> On Windows, call Git Bash explicitly as shown above: a plain `bash` command may start the WSL shell instead,
+> which runs in a different environment.
+
+The script is idempotent and can safely be run again. It:
+
+1. installs the missing dependencies (Ubuntu only);
+2. creates `.env` from `.env.example`, with a randomly generated `SECRET_KEY`, `POSTGRES_PASSWORD` and
+   `KEYCLOAK_ADMIN_PASSWORD`;
+3. generates the local certificate authority and the server certificate;
+4. builds the images and starts the four services;
+5. applies the database migrations and creates the cache table.
+
+### Trust the local certificate authority
+
+This step is **required**. Without it, the browser shows a security warning and, above all, **WebAuthn refuses
+to work**: it only runs in a secure context.
+
+**Windows (PowerShell, from the project folder)** — the `CurrentUser` store requires no administrator rights:
+
+```powershell
+Import-Certificate -FilePath .\certs\ca.crt -CertStoreLocation Cert:\CurrentUser\Root
+```
+
+**Ubuntu — system store**
+
+```bash
+sudo cp certs/ca.crt /usr/local/share/ca-certificates/hospital-security-ca.crt
+sudo update-ca-certificates
+```
+
+**Ubuntu — Chrome / Chromium**, which uses its own NSS database on Linux:
+
+```bash
+sudo apt-get install -y libnss3-tools
+certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n "Hospital Security CA" -i certs/ca.crt
+```
+
+Restart the browser completely, then open **https://localhost**: the padlock must be closed, with no warning.
+
