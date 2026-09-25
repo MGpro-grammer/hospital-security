@@ -17,10 +17,6 @@
 
 </div>
 
-> [!NOTE]
-> This README is being rewritten. Installation and usage instructions are currently available in
-> [`5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital/README.md`](5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital/README.md).
-
 
 ## Table of contents
 
