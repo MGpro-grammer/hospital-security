@@ -375,3 +375,43 @@ which does not apply to `localhost`; the justification is documented in `backend
 docker run --rm -v "${PWD}/frontend:/app" -w /app node:22-alpine npm audit
 docker run --rm -v "${PWD}/backend:/app" -w /app python:3.12-slim sh -c "pip install -q pip-audit && pip-audit -r requirements.txt"
 ```
+
+
+## Developer documentation
+
+Both documentations are generated from the comments in the source code, so they cannot drift away from the
+implementation. The code comments, and therefore the generated documentation, are written in French.
+
+**Backend (Sphinx)**
+
+```bash
+docker run --rm -v "${PWD}/backend:/app" -w /app python:3.12-slim sh -c "pip install -q -r requirements.txt -r requirements-docs.txt && sphinx-build -b html docs docs/_build"
+```
+
+Output: `backend/docs/_build/index.html`
+
+**Frontend (JSDoc)**
+
+```bash
+docker run --rm -v "${PWD}/frontend:/app" -w /app node:22-alpine npx --yes jsdoc -c jsdoc.json
+```
+
+Output: `frontend/docs/index.html`
+
+## Operations
+
+| Action                         | Command                                        |
+|--------------------------------|------------------------------------------------|
+| Show the status of the services | `docker compose ps`                           |
+| Follow the backend logs        | `docker compose logs -f django`                |
+| Stop (data is kept)            | `docker compose down`                          |
+| Restart                        | `docker compose up -d`                         |
+| **Reset everything**           | `docker compose down -v`, then run `install.sh` again |
+
+`docker compose down -v` deletes the database **and** the Keycloak accounts. The realm is re-imported
+automatically at the next startup, but user accounts must be created again.
+
+> [!WARNING]
+> After a reset, the old passkeys remain registered in the operating system although the matching accounts no
+> longer exist. Delete them before registering again (Windows Settings → Accounts → Passkeys, filter `localhost`).
+
