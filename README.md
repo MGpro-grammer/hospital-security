@@ -75,3 +75,21 @@ server nor on disk.
 | Infrastructure   | Docker Compose, local certificate authority generated with OpenSSL                  |
 | Documentation    | Sphinx (backend), JSDoc (frontend)                                                  |
 | Tests            | Django test runner, Vitest, Vue Test Utils                                          |
+
+
+## Architecture
+
+The application runs as four Docker Compose services. The browser is the only place where medical data
+exists in plaintext: it encrypts and decrypts everything locally and only exchanges ciphertext with the server.
+
+![Service architecture: the browser talks over HTTPS to nginx, Keycloak and the Django API; Django checks token signatures with Keycloak's public keys and stores only ciphertext in PostgreSQL](docs/images/architecture.svg)
+
+| Service    | Role                                                        | Port                      |
+|------------|-------------------------------------------------------------|---------------------------|
+| `frontend` | Compiled Vue.js 3 app served by nginx, with security headers | 443 (80 redirects to 443) |
+| `django`   | REST API served by Gunicorn, which terminates TLS itself    | 8000                      |
+| `keycloak` | OpenID Connect identity provider, passwordless flow         | 8443                      |
+| `db`       | PostgreSQL 16, reachable only from the internal network     | —                         |
+
+All communications use HTTPS, without exception. The Keycloak realm (passwordless flow, client, groups and
+WebAuthn policy) is imported automatically at first startup.
