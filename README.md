@@ -61,4 +61,17 @@ server nor on disk.
 - **Hardened deployment** — HTTPS everywhere through a local certificate authority, strict CSP, HSTS, rate
   limiting, brute-force detection in Keycloak, and a one-command installation that generates random secrets.
 
-  
+
+## Tech stack
+
+| Area             | Technology                                                                          |
+|------------------|-------------------------------------------------------------------------------------|
+| Frontend         | Vue.js 3 (Options API), Vite — served by nginx                   |
+| Cryptography     | Web Crypto API — AES-256-GCM, RSA-OAEP, RSA-PSS, HKDF-SHA256                        |
+| Authentication   | Keycloak 26 (OpenID Connect), WebAuthn passkeys with the PRF extension              |
+| Backend          | Python 3.12, Django 6.1, Django REST Framework, Gunicorn                            |
+| Token validation | PyJWT — JWT signatures checked against Keycloak's public keys (JWKS)                |
+| Database         | PostgreSQL 16                                                                       |
+| Infrastructure   | Docker Compose, local certificate authority generated with OpenSSL                  |
+| Documentation    | Sphinx (backend), JSDoc (frontend)                                                  |
+| Tests            | Django test runner, Vitest, Vue Test Utils                                          |
