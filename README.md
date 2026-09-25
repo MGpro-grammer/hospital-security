@@ -1,11 +1,22 @@
-# 5SEC1A — Projet de sécurité — Groupe 31
+<div align="center">
 
-- Mouratidis Georges (62218)
-- Grande Ian (62265)
+# Hospital Security
 
-Le projet se trouve dans le dossier **`5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital/`**.
+**End-to-end encrypted medical records platform — passwordless sign-in with WebAuthn, encryption keys derived from the user's authenticator, and a server that cannot read a single byte of medical data.**
 
-    cd 5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital
-    ./install.sh
+![Vue.js](https://img.shields.io/badge/Vue.js-3-4FC08D?style=flat&logo=vuedotjs&logoColor=white)
+![Django](https://img.shields.io/badge/Django-6.1-092E20?style=flat&logo=django&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)
+![Keycloak](https://img.shields.io/badge/Keycloak-26-4D4D4D?style=flat&logo=keycloak&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat&logo=postgresql&logoColor=white)
+![nginx](https://img.shields.io/badge/nginx-009639?style=flat&logo=nginx&logoColor=white)
+![Docker Compose](https://img.shields.io/badge/Docker_Compose-2496ED?style=flat&logo=docker&logoColor=white)
+![WebAuthn](https://img.shields.io/badge/WebAuthn-PRF-3423A6?style=flat&logo=webauthn&logoColor=white)
+![Web Crypto API](https://img.shields.io/badge/Web_Crypto_API-555555?style=flat)
+![Vitest](https://img.shields.io/badge/Vitest-tested-6E9F18?style=flat&logo=vitest&logoColor=white)
 
-Les instructions complètes d'installation et d'utilisation sont dans le README de ce dossier.
+</div>
+
+> [!NOTE]
+> This README is being rewritten. Installation and usage instructions are currently available in
+> [`5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital/README.md`](5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital/README.md).
