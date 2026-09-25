@@ -257,3 +257,78 @@ certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n "Hospital Security CA" -i certs/
 
 Restart the browser completely, then open **https://localhost**: the padlock must be closed, with no warning.
 
+
+### Authenticator requirements
+
+The application derives the key that protects the user's private keys from their authenticator, through the
+WebAuthn **PRF** extension (`hmac-secret`). Without it, the application cannot work.
+
+| Component     | Tested configuration                            |
+|---------------|-------------------------------------------------|
+| System        | Windows 11 (build 26200)                        |
+| Browser       | Microsoft Edge 151                              |
+| Authenticator | Windows Hello, with the passkey stored on the device |
+
+Recent FIDO2 security keys supporting `hmac-secret` (YubiKey 5 series, SoloKeys) and Chrome on Windows and Linux
+work also. Password managers that intercept passkey creation without implementing PRF do not: when
+creating the passkey, explicitly choose **This device**.
+
+> [!TIP]
+> If the application displays `PRF indisponible sur cet authentificateur`, the passkey was created by a component
+> that does not support PRF. Delete it (Windows Settings → Accounts → Passkeys, filter `localhost`), then register
+> again and choose **This device**. On computers managed by a school or a company, Windows Hello may be disabled
+> by the organisation.
+
+### Usage
+
+The application is available at **https://localhost**. Its user interface is in French.
+
+**Create a patient**
+
+1. **1. Se connecter** → *Register* on the Keycloak page.
+2. Enter a username and an email, then create the passkey, choosing **This device**.
+3. Back in the application: **2. Créer mon profil**, then **3. Enregistrer mes clés**.
+
+The `patients` group is assigned automatically at registration.
+
+**Create a doctor** — the `doctors` role is never self-assigned: it is the privileged role, granted by the organisation.
+
+1. Register a second account as above.
+2. In the Keycloak admin console (`https://localhost:8443`, user `admin`, password in `.env`): realm **hospital** →
+   **Users** → the account → **Groups** tab → **Join Group** → `doctors`.
+3. Sign in again with this account, then **2. Créer mon profil** (the *Organisation* field appears) and
+   **3. Enregistrer mes clés**.
+
+**Walkthrough** — fictitious sample documents are available in the project folder (`*_medical_records_*.txt`).
+
+*As a patient*, after **4. Déverrouiller mes clés**:
+
+- upload an encrypted file to the record;
+- **6. Lire mon dossier**: `MANIFESTE VALIDE` confirms that the list delivered by the server matches the list
+  signed by the patient;
+- **7. Chercher un médecin** → **Autoriser**: the browser re-wraps the key of each file for this doctor;
+- **Retirer**: the link and all of the doctor's keys are deleted.
+
+*As a doctor*:
+
+- **7. Chercher un patient** → **Demander l'accès**: the request stays pending until the patient approves it;
+- **Ouvrir le dossier**, then **Ouvrir** a file;
+- **9. Déposer** a file: it arrives as `pending_approval` and does not enter the record until the patient approves
+  and countersigns it;
+- **Remplacer** / **Demander la suppression**: proposals submitted to the patient's approval.
+
+### See for yourself: the server sees nothing
+
+```bash
+docker compose exec db psql -U hospital -d hospital -P pager=off -c "SELECT id, LEFT(ciphertext, 40) FROM records_medicalfile;"
+```
+
+No file name, no exam date, no content: all three are serialised and encrypted together in a single blob.
+
+```bash
+docker compose exec db psql -U hospital -d hospital -P pager=off -c "SELECT file_id, recipient_sub, LEFT(wrapped_dek, 24) FROM records_wrappedkey ORDER BY file_id;"
+```
+
+For the same file, two envelopes (the patient's and the doctor's) **without a single byte in common**, even
+though they protect the same key. The encrypted file itself is stored only once.
+
