@@ -115,3 +115,37 @@ hosts. The DEK is then wrapped with RSA-OAEP for each person allowed to read the
 adds an envelope, and revoking it deletes the envelope.
 
 ![Envelope encryption: the file is encrypted once with its DEK, and the DEK is wrapped separately with the patient's and the doctor's public keys](docs/images/envelope-encryption.svg)
+
+
+### Signed manifest
+
+Encryption protects each file, but not the list of files. A compromised server could silently delete an
+inconvenient exam or add a forged document, and every remaining file would still decrypt correctly. Each record
+therefore has a manifest (the list of file identifiers and a version counter) signed with the patient's RSA-PSS
+private key. The client verifies the signature, then compares the signed list with the list actually delivered,
+in both directions, so that both removals and additions are detected. The server rejects any manifest whose
+version does not increase, which blocks the replay of an older, validly signed manifest.
+
+### Access control
+
+- **Deny by default** — every endpoint requires a valid token unless explicitly stated otherwise.
+- **Role from the token** — the role is derived from the group carried by the signed token, never from a field
+  sent by the client.
+- **Object-level checks** — a doctor approved for patient A cannot read the files of patient B.
+- **404, not 403** — unauthorised access to a file returns `404 Not Found`: a `403` would confirm to an attacker
+  that the file exists.
+
+### Server authentication
+
+The server's public key is carried by its X.509 certificate, signed by a local certificate authority created at
+installation. The CA certificate is **transferred out of band**: it is generated on the machine that runs the
+project and installed manually in the system trust store, never downloaded from the server itself. On every
+connection, the browser checks the signature chain and that the requested hostname appears in the certificate's
+`subjectAltName`, and refuses the connection if either check fails. In production, a public CA would replace the
+local one; the mechanism stays the same.
+
+### Hardening
+
+`DEBUG=False`, Gunicorn instead of a development server (no interactive debugger), Django admin disabled outside
+development, HSTS, strict Content Security Policy, secure cookies, rate limiting with a counter shared between
+workers, brute-force detection in Keycloak and full OpenID Connect logout.
