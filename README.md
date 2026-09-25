@@ -332,3 +332,46 @@ docker compose exec db psql -U hospital -d hospital -P pager=off -c "SELECT file
 For the same file, two envelopes (the patient's and the doctor's) **without a single byte in common**, even
 though they protect the same key. The encrypted file itself is stored only once.
 
+
+## Testing
+
+The automated tests target the security-critical code: the cryptography running in the browser and the
+cross-record access control on the server.
+
+| Scope                         | Tests | What is verified                                                                                   |
+|-------------------------------|------:|----------------------------------------------------------------------------------------------------|
+| Frontend — `crypto/keys.js`   | 6     | Same PRF output gives the same KEK, another output a different one; private key wrap/unwrap cycle; wrong KEK rejected; no plaintext trace of the private key; base64 round trip |
+| Frontend — `crypto/files.js`  | 7     | Name, date and content restored; neither file name nor date leak; tampered blob detected; DEK shared through RSA without duplicating the file; DEK unreadable by a third party; authentic manifest accepted; file removed from the manifest detected |
+| Backend — `records`           | 2     | Replacing a file in another patient's record is refused; replacing a file in the same record is accepted |
+
+All commands below are run from the `5SEC1AL_2025-2026_Projet_Groupe31_ThemeHospital/` folder.
+
+**Backend tests**
+
+```bash
+docker compose exec django python manage.py test
+```
+
+**Frontend tests**
+
+```bash
+docker run --rm -v "${PWD}/frontend:/app" -w /app node:22-alpine sh -c "npm ci && npx vitest run"
+```
+
+### Security audits
+
+**Django deployment checklist**
+
+```bash
+docker compose exec django python manage.py check --deploy
+```
+
+Expected: `System check identified no issues (1 silenced)`. The silenced check is `security.W021` (HSTS preload),
+which does not apply to `localhost`; the justification is documented in `backend/config/settings.py`.
+
+**Dependency audits**
+
+```bash
+docker run --rm -v "${PWD}/frontend:/app" -w /app node:22-alpine npm audit
+docker run --rm -v "${PWD}/backend:/app" -w /app python:3.12-slim sh -c "pip install -q pip-audit && pip-audit -r requirements.txt"
+```
