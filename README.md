@@ -63,7 +63,7 @@ server nor on disk.
 Full walkthrough of the application (4 min): passwordless sign-in, encrypted upload, sharing with a doctor,
 approval of a doctor's proposal, inspection of the database and revocation of access.
 
-LIEN_DE_LA_VIDEO
+https://github.com/user-attachments/assets/11d08eab-7254-4834-83a9-a0f356f5fb14
 
 ## Features
 
