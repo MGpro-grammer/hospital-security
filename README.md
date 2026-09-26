@@ -15,12 +15,16 @@
 ![Web Crypto API](https://img.shields.io/badge/Web_Crypto_API-555555?style=flat)
 ![Vitest](https://img.shields.io/badge/Vitest-tested-6E9F18?style=flat&logo=vitest&logoColor=white)
 
+
+![Demo: passwordless sign-in with Windows Hello, encrypted upload and signed-manifest check](docs/images/demo.gif)
+
 </div>
 
 
 ## Table of contents
 
 - [About](#about)
+- [Demo](#demo)
 - [Features](#features)
 - [Tech stack](#tech-stack)
 - [Architecture](#architecture)
@@ -54,6 +58,12 @@ server nor on disk.
 > **Ian Grande** for the Security course (2025-2026), with a strong focus on end-to-end encryption,
 > passwordless authentication and a documented threat model.
 
+## Demo
+
+Full walkthrough of the application (4 min): passwordless sign-in, encrypted upload, sharing with a doctor,
+approval of a doctor's proposal, inspection of the database and revocation of access.
+
+LIEN_DE_LA_VIDEO
 
 ## Features
 
